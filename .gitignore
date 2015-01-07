@@ -9,3 +9,15 @@
 
 # RStudio files
 .Rproj.user/
+*.Rproj
+##
+
+DM_package_devel/*
+
+##
+
+._*
+.DS*
+
+
+
