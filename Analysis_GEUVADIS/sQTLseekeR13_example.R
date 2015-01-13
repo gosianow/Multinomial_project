@@ -11,9 +11,9 @@
 # install.packages("/home/gosia/R/packages/vegan_2.0-10.tar.gz", lib="/home/gosia/R/libraries/3.1.0/")
 
 ### installation in terminal
-# R14 CMD INSTALL sQTLseekeR-1-2_0.gz
+# R214 CMD INSTALL sQTLseekeR-1-2_0.gz
 
-# R14 CMD INSTALL sQTLseekeR-1-3.gz
+# R214 CMD INSTALL sQTLseekeR-1-3.gz
 
 
 
