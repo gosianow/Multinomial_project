@@ -74,6 +74,42 @@ colnames(trans.exp.f) <- c("trId", "geneId", groups$sample)
 
 write.table(trans.exp.f, paste0(out.dir,"trExpRPKM.tsv"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
+for(i in unique(groups$group))
+  write.table(trans.exp.f[,c("trId", "geneId", groups$sample[groups$group == i])], paste0(out.dir,"trExpRPKM_",i,".tsv"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+
+
+
+### counts
+quantFile <- "GEUVADIS_analysis_results/GD660.TrQuantCount.txt"
+
+trans.exp.f0 <- read.table(quantFile, header = T, sep="\t", as.is = TRUE)
+
+trans.exp.f <- trans.exp.f0[, c("TargetID", "Gene_Symbol", groups$sample)]
+colnames(trans.exp.f) <- c("trId", "geneId", groups$sample)
+
+write.table(trans.exp.f, paste0(out.dir,"trExpCount.tsv"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+
+for(i in unique(groups$group))
+  write.table(trans.exp.f[,c("trId", "geneId", groups$sample[groups$group == i])], paste0(out.dir,"trExpCount_",i,".tsv"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+
+
+##### check the relation between counts and RPKM
+
+
+trans.exp.rpkm <- read.table(paste0(out.dir,"trExpRPKM_CEU.tsv"), header = T, sep="\t", as.is = TRUE)
+
+trans.exp.counts <- read.table(paste0(out.dir,"trExpCount_CEU.tsv"), header = T, sep="\t", as.is = TRUE)
+
+all(trans.exp.rpkm$trId == trans.exp.counts$trId)
+
+
+pdf(paste0(out.dir,"Relation_between_RPKM&Count.pdf"))
+plot(trans.exp.rpkm[,3], trans.exp.counts[,3])
+dev.off()
+
+
+
+
 
 
 ##########################  genotype.f
@@ -254,26 +290,55 @@ genotype.indexed.f <- paste0(data.dir, "snps_CEU_full.tsv.bgz")
 # 
 # write.table(tre.df, paste0(data.dir, "trExpRPKM_CEU_clean.tsv"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
-tre.df <- read.table(paste0(data.dir, "trExpRPKM_CEU_clean.tsv"), header = TRUE, as.is=TRUE)
+tre.df <- tre.df.org <- read.table(paste0(data.dir, "trExpRPKM_CEU_clean.tsv"), header = TRUE, as.is=TRUE)
 
 
 ## 3) Test gene/SNP associations
 gene.bed = read.table(gene.bed.f, as.is=TRUE, sep="\t")
 colnames(gene.bed) = c("chr","start","end","geneId")
 
-res.df = sQTLseekeR::sqtl.seeker(tre.df, genotype.indexed.f, gene.bed)
 
 
+library(parallel)
 
-## Optional: write a file with all Pvalues
-res.f = "sQTLs-CEU-all.tsv"
-write.table(res.df, file=paste0(out.dir, res.f), quote=FALSE, row.names=FALSE, col.names=!file.exists(res.f), append=file.exists(res.f), sep="\t")
-## Optional
+genes.unq <- unique(tre.df.org$geneId)
+dir.create(paste0(out.dir, "ByGene_CEU/"))
+
+
+res.df.list <- mclapply(seq(length(genes.unq)), function(g){
+  cat(g, fill = TRUE)
+  res.df = sQTLseekeR::sqtl.seeker(tre.df.org[tre.df.org$geneId == genes.unq[g],  ], genotype.indexed.f, gene.bed)
+  
+  if(!is.null(res.df))
+  write.table(res.df, paste0(out.dir, "ByGene_CEU/results_", g, genes.unq[g], ".txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+  
+  return(NULL)
+  
+}, mc.cores = 20)
+
+
+##### read in the results 
+res.df.files <- list.files(paste0(out.dir, "ByGene_CEU/"), full.names=TRUE)
+
+res.df.list <- mclapply(seq(length(res.df.files)), function(g){
+
+  res <- read.table(res.df.files[g], header = TRUE, as.is = TRUE)
+  
+}, mc.cores = 10)
+
+res.df <- do.call(rbind, res.df.list)
+
+
+write.table(res.df, paste0(out.dir, "CEU_results_all.txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+
+dim(res.df)
+dim(unique(res.df[,c("geneId", "snpId")]))
 
 ## 4) Get significant sQTLs
-sqtls.df = sqtls(res.df, FDR=.05, out.pdf="sQTLs-FDR05.pdf")
+sqtls.df = sqtls(res.df, FDR=.05, out.pdf=paste0(out.dir, "CEU_results_FDR05.pdf"))
 
 
+write.table(sqtls.df, paste0(out.dir, "CEU_results_FDR05.txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
 
 

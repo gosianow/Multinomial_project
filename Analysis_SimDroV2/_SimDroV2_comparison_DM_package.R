@@ -572,10 +572,10 @@ for(j in names(methodsList)){
 ############################## plots
 
 methodsList <- list(
-  IMLS = c("htseq_dexseq", "fc_g0_s4_keep0s_subsetInf_DM5adj", "fc_g0_s4_keep0s_subsetInf_DM5TGcoadj"))
+  IMLS = c("htseq_dexseq", "fc_g0_s4_keep0s_subsetInf_DM5adj", "fc_g0_s4_keep0s_subsetInf_DM5TGcoadj", "rsem_g0_s4_keep0s_subsetInf_DM5adj"))
 
 methodsListLeg <- list(
-  IMLS = c("htseq_dexseq", "fc_DM_common", "fc_DM_tagwise"))
+  IMLS = c("htseq_dexseq", "fc_DM_common", "fc_DM_tagwise", "rsem_DM_common"))
 
 
 
@@ -587,7 +587,7 @@ for(j in names(methodsList)){
   
   apvs <- table[,paste0("adjPValue_", methods[1])]
   status <- table$status
-  TPRvsFDR(status, apvs, col=colors[methods[1]], xlim=c(0,0.2), ylim=c(0.7,1), lwd=7, cex=3.3, cex.lab=1.45, cex.axis=1.5)
+  TPRvsFDR(status, apvs, col=colors[methods[1]], xlim=c(0,0.3), ylim=c(0.7,1), lwd=7, cex=3.3, cex.lab=1.45, cex.axis=1.5)
   
   for( i in methods[-1]){
     apvs <- table[,paste0("adjPValue_", i)]

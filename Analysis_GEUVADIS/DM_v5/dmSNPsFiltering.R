@@ -240,6 +240,8 @@ for(i in 1:length(compressVcf)){
   
   goodSNPs <- rownames(genoABclean) ## FINAL good SNPs
   
+	
+	### keep vcf to access positions of SNPs
   vcfClean <- vcf[goodSNPs, ]
   vcfCleanList[[chr[i]]] <- vcfClean 
   
@@ -252,7 +254,7 @@ for(i in 1:length(compressVcf)){
 
 
 ###############################
-# prepare genotypes & SNPs for DGEList
+# prepare genotypes & SNPs (gene_id match SNP_id) for DGEList
 ###############################
 
 SNPsList <- list()
@@ -345,7 +347,7 @@ save(dgeSQTL, file="DM_genotypes/dgeSQTL.RData")
 
 
 
-################################ dgeSQTL object with genotypes as list // DM functions are not adjusted for it yet
+################################ dgeSQTL object with genotypes as list // DM_v5 functions are not adjusted for it yet
 
 
 #### split genotypes by gene and order acordingly 
