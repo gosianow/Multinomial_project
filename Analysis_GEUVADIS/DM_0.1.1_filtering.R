@@ -265,6 +265,7 @@ all(tre.df$trId == tre.df.rel$trId)
 # y <- c("C", "A", "B")
 # y[match(x, y)]
 
+
 tre.df[is.na(tre.df.rel)] <- NA
 all(is.na(tre.df) == is.na(tre.df.rel))
 
