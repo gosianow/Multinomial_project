@@ -284,19 +284,25 @@ res.seeker.all <- read.table("sQTLseekeR20_analysis/Results/CEU_results_all.txt"
 
 snp2gene <- unique(res.seeker.all[, c("geneId", "snpId")])
 
+### load genotypes
+# snps_CEU_full <- read.table(genotype.f, header = TRUE, as.is = TRUE)
+# save(snps_CEU_full, file = paste0(data.dir, "snps_CEU_full.RData"))
 
-snps_CEU_full <- read.table(genotype.f, header = TRUE, as.is = TRUE)
+load(paste0(data.dir, "snps_CEU_full.RData"))
 
-save(snps_CEU_full, file = paste0(data.dir, "snps_CEU_full.RData"))
+# snps_CEU_filtered <- snps_CEU_full[snps_CEU_full$snpId %in% unique(res.seeker.all$snpId), ]
+# save(snps_CEU_filtered, file = paste0(data.dir, "snps_CEU_filtered.RData"))
 
-snps_CEU_filtered <- snps_CEU_full[snps_CEU_full$snpId %in% unique(res.seeker.all$snpId), ]
-
-save(snps_CEU_filtered, file = paste0(data.dir, "snps_CEU_filtered.RData"))
+load(paste0(data.dir, "snps_CEU_filtered.RData"))
 
 
+
+##### This does not give the guarantie that there are no groups with < 5 samples; additional filtering is needed.
 genotypes <- merge(snp2gene, snps_CEU_filtered, by = "snpId", all.x = TRUE, sort = FALSE)
 
 genotypes[genotypes == -1]  <- NA
+
+
 
 
 #### Check if there are NAs

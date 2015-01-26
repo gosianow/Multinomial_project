@@ -9,7 +9,7 @@ setwd("/home/Shared/data/seq/GEUVADIS/")
 
 
 ##################################################################################
-### Prepare data
+### Prepare data for sQTLSeekeR
 ##################################################################################
 
 out.dir <- "sQTLseekeR20_analysis/Data/"
