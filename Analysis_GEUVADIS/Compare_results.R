@@ -226,20 +226,6 @@ plot.main <- paste0(plot.names, "\n", "tagwise dispersion ", res.dm.fn.top$tagwi
 
 
 
-
-plot.snps[10, ]
-res.seeker[res.seeker$SNPgene == "snp_12_50968330-ENSG00000066084.7", ]
-
-load(paste0("DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispersion/", "dgeSQTL_chr", 12, ".RData" ))
-
-which(dgeSQTL$SNPs$SNP_id == "snp_12_50968330") 
-
-dgeSQTL$fit[[12822]]
-dgeSQTL$fit.null[[12822]]
-
-
-
-
 for(i in 1:nrow(plot.snps)){
   # i = 10
   cat(paste0("SNPgene ", i, "\n"))
