@@ -3,7 +3,7 @@
 # Created 16 Jan 2014
 # Modyfied 16 Jan 2014
 
-# Analyse data from DM_0.1.1_filtering
+# Analyse data from DM_0.1.2_filtering
 
 ##############################################################################################################
 
@@ -31,7 +31,7 @@ dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 
 
-load(paste0("DM_0.1.1_sQTL_analysis/Data/dgeSQTL.RData"))
+load(paste0("DM_0.1.2_sQTL_analysis/Data/dgeSQTL.RData"))
 
 dgeSQTL.org <- dgeSQTL
 

@@ -24,7 +24,7 @@ sQTLseekeR.files <- list.files("/home/gosia/R/R_Multinomial_project/Analysis_GEU
 for(i in sQTLseekeR.files)
 source(i)
 
-out.dir <- "DM_0.1.1_sQTL_analysis/Data/"
+out.dir <- "DM_0.1.2_sQTL_analysis/Data/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 

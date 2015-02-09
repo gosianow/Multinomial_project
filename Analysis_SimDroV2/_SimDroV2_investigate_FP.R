@@ -4,10 +4,12 @@
 
 # Aim: to find out what is the origin of FP called by DM
 
-# Update 03 Nov 2014:
+# Update 28 Jan 2015:
 
 # plots of TREND dispersion vs. mean 
 # plots of entropy 
+
+# plot of expression for FP genes
 
 #######################################################
 # BioC 2.14
@@ -29,6 +31,14 @@ source(paste0(Rdir, "dmFunctions_v5.R"))
 
 out.dir <- "PLOTS_DM_v5_FP/"
 dir.create(out.dir, recursive = T, showWarnings = FALSE)
+
+
+
+# create metadata file
+metadata <- data.frame(SampleName1 = paste0(1:6), SampleName= paste0(c(rep("C1", 3), rep("C2", 3)), "S",c(1:3, 1:3)), condition=c(rep("C1", 3), rep("C2", 3)))
+metadata$condition <- as.factor(metadata$condition)
+
+metadata
 
 
 
@@ -128,7 +138,7 @@ for( i in 1:length(TGmethods)){
 }
 
 
-
+################## plot the correlation between different tagwise methods
 
 pdf(paste0(out.dir, "/tagwiseDispersions.pdf"), 10, 10)
 
@@ -234,48 +244,171 @@ for( i in 1:length(TGmethods)){
 
 
 
-#######################################################
-# plots of exon counts per gene / TODO
-#######################################################
+############################################################################
+# plots of exon counts per gene for FP with high significance 
+############################################################################
+
+
+table <- tableOrg
+
+disp.meth <- "adjPValue_fc_g0_s4_keep0s_subsetInf_DM5adj"
+
+### table with most significant  FP on top  
+filtFP <- table$status == 0 & table[,disp.meth] < 0.05 & !is.na(table[,disp.meth])
+tableFP <- table[filtFP, c("gene_id",disp.meth), drop = FALSE]
+tableFP <- tableFP[order(tableFP[, disp.meth], decreasing = FALSE), ]
+
+### load DM results 
+
+load("DM_v5/fc/fc_g0_s4_keep0s_subsetInf_DM5adj_dgeDM.RData")
+dgeDM
 
 
 
 
+### plot exon expression in both conditions 
+pdf(paste0(out.dir, "ExonExpression_topFP.pdf"), width = 14, height = 7)
 
-pdf("PLOTS/ExploreDM/UniqTruePositives2.pdf", width = 14, height = 7)
-
-for(g in uniq.tp[1]){
+for(g in 1:10){
+  # g = 1
+  gene <- tableFP[g, "gene_id"]
+  expr <- dgeDM$counts[[gene]]
+  colnames(expr) <- metadata$SampleName
+  rownames(expr) <- subset(dgeDM$genes, gene_id==gene)$ete_id
   
-  dge.g.keep <- dgec[dgec$gene.id==g,,drop=FALSE]
-  dge.g <- dgecnf[dgecnf$gene.id==g,,drop=FALSE]
-  ds.ex.g <- ds.ex[ds.ex$Gene==g, , drop=FALSE]$exon
+  labels <- strsplit2(rownames(expr), ":")[,2]
+  n <- nrow(expr)
   
-  col.axis <- ifelse(dge.g$ete.id %in% ds.ex.g, col3, "grey50")
-  
-  
-  labels <- strsplit2(dge.g$ete.id, ":")[,2]
-  genes.keep <- dge.g$ete.id %in% dge.g.keep$ete.id
-  labels[genes.keep] <- paste0("*" ,labels[genes.keep], "*")
-  
-  n <- length(dge.g$ete.id)
   
   par(mar=c(8, 5, 4, 2) +  0.1)
-  plot(rep(1, n), type="n", ylim=c(0, 10), xaxt="n", ylab="",xlab="", main=g,  cex.main=2, cex.axis=2)
-  title(ylab = "log2(counts + 1)", mgp = c(3, 1, 0), cex.lab=1.5)
-  title(xlab = "Flattened exon ID", mgp = c(6, 1, 0), cex.lab=1.5)
-  
-  for(j in 1:length(dge.g$ete.id))
-    axis(side=1, at=j, labels=labels[j], las=2, col.axis = col.axis[j], cex.axis=2)
+  plot(rep(1, n), type="n", ylim=c(0, max(expr)), xaxt="n", ylab="",xlab="", main=gene,  cex.main=2, cex.axis=1.7)
+  title(ylab = "Counts", mgp = c(3, 1, 0), cex.lab=2)
+  title(xlab = "Flattened exon IDs", mgp = c(6, 1, 0), cex.lab=2)
+  axis(side=1, at=1:n, labels=labels, las=2, cex.axis=2)
   
   for(i in 1:3)
-    lines(log2(dge.g[,2+i]+1), col=col1, type="l", lwd=3)
+    lines(expr[,i], col="firebrick1", type="l", lwd=5)
   for(i in 4:6)
-    lines(log2(dge.g[,2+i]+1), col=col2, type="l", lwd=3)
+    lines(expr[,i], col="dodgerblue", type="l", lwd=5)
+
   
-  legend("topright", c("Condition1", "Condition2"), lty=1, lwd=3, col=c(col1, col2), cex=2)
+  legend("topright", c("Condition1", "Condition2"), lty=1, lwd=5, col=c("firebrick1", "dodgerblue"), cex=2, bty = "n")
+  
   
 }
+
 dev.off()
+
+
+
+
+### plot exon proportions in both conditions 
+pdf(paste0(out.dir, "ExonProportions_topFP.pdf"), width = 14, height = 7)
+
+for(g in 1:10){
+  # g = 1
+  gene <- tableFP[g, "gene_id"]
+  expr <- dgeDM$counts[[gene]]
+  colnames(expr) <- metadata$SampleName
+  rownames(expr) <- subset(dgeDM$genes, gene_id==gene)$ete_id    
+  tot <- colSums(expr)
+  prop.smp <- data.frame(t(apply(expr, 1, function(t){ t / tot })))  
+  labels <- strsplit2(rownames(expr), ":")[,2]
+  n <- nrow(expr)  
+  
+  
+  par(mar=c(8, 5, 4, 2) +  0.1)
+  plot(rep(1, n), type="n", ylim=c(0, max(prop.smp)), xaxt="n", ylab="",xlab="", main=gene,  cex.main=2, cex.axis=1.7)
+  title(ylab = "Proportions", mgp = c(3, 1, 0), cex.lab=2)
+  title(xlab = "Flattened exon IDs", mgp = c(6, 1, 0), cex.lab=2)
+  axis(side=1, at=1:n, labels=labels, las=2, cex.axis=2)
+  
+  for(i in 1:3)
+    lines(prop.smp[,i], col="firebrick", type="l", lwd=5)
+  for(i in 4:6)
+    lines(prop.smp[,i], col="dodgerblue4", type="l", lwd=5)
+  
+  prop.est <- dgeDM$fit[[gene]]$piH
+  
+  points(1:n, prop.est[,1], pch = 19, cex = 3, col = "firebrick1")
+  points(1:n, prop.est[,2], pch = 18, cex = 3, col = "dodgerblue")
+  
+  
+  legend("topright", c("Condition1", "Condition2"), lty=1, lwd=5, col=c("firebrick1", "dodgerblue"), cex=2, bty = "n")
+  
+  
+}
+
+dev.off()
+
+
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+
+
+### plot exon proportions in both conditions 
+pdf(paste0(out.dir, "ExonProportions_topFP_ggplot.pdf"), width = 7, height = 3)
+
+for(g in 1:20){
+  # g = 1
+  gene <- tableFP[g, "gene_id"]
+  expr <- dgeDM$counts[[gene]]
+  colnames(expr) <- metadata$SampleName
+  rownames(expr) <- subset(dgeDM$genes, gene_id==gene)$ete_id    
+  tot <- colSums(expr)
+  labels <- strsplit2(rownames(expr), ":")[,2]
+  prop.smp <- data.frame( ete_id =  labels, t(apply(expr, 1, function(t){ t / tot })))  
+  n <- nrow(expr)  
+  prop.est <- data.frame(ete_id = labels, dgeDM$fit[[gene]]$piH)
+  
+  prop.smp.m <- melt(prop.smp, id.vars = "ete_id", variable.name = "Samples", value.name = "Proportions")  
+  Condition <- prop.smp.m$Samples 
+  levels(Condition) <- substr(levels(Condition), 1,2)
+  
+  prop.est.m <- melt(prop.est, id.vars = "ete_id", variable.name = "Samples", value.name = "Proportions")
+
+  ggp <- ggplot() +
+    theme_bw() +
+    geom_line(data = prop.smp.m, aes(x = ete_id, y = Proportions, group = factor(Samples), colour = Condition )) +
+#     scale_color_manual(values=gg_color_variants(length(var.counts))) 
+#     theme(axis.text.x  = element_text(angle=80, vjust=0.5, size=12, colour = gg_color_hue(nlevels(m.prop$Transcript)), face="bold"), panel.background = element_blank(),  axis.line = element_line(colour = "grey")) 
+
+  geom_point(data = prop.est.m, aes(x = ete_id, y = Proportions, group = factor(Samples), colour = Samples ), size = 3) +
+  theme(axis.text.x = element_text(angle = 70, vjust = 0.5 )) +
+  ggtitle(paste0(gene))
+
+  print(ggp)
+
+}
+
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
