@@ -1,9 +1,11 @@
 # BioC 3.0
 
 # Created 16 Jan 2014
-# Modyfied 16 Jan 2014
-
 # Analyse data from DM_0.1.2_filtering
+
+# Modyfied 9 Feb 2014
+# Add plots of mean expression vs dispersion 
+
 
 ##############################################################################################################
 
@@ -16,9 +18,14 @@ source("/home/gosia/R/R_Multinomial_project/DM_package_devel/0_my_printHead.R")
 
 library(edgeR)
 
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+library(RColorBrewer)
 
-Rfiles <- list.files("/home/gosia/R/R_Multinomial_project/DM_package_devel/DM/R/", full.names=TRUE)
-for(i in Rfiles) source(i)
+
+# Rfiles <- list.files("/home/gosia/R/R_Multinomial_project/DM_package_devel/DM/R/", full.names=TRUE)
+# for(i in Rfiles) source(i)
 
 
 
@@ -390,6 +397,62 @@ save(piH, file = paste0(out.dir, "piH_chr", chr, ".RData" ))
   }, mc.cores = 3)
 
 
+
+
+##########################################################################################
+# Plot dispersion vs mean expression 
+##########################################################################################
+
+out.dir <- "DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispersion/"
+dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
+
+
+res <- mclapply(22:1, function(chr){ 
+  # chr = 22
+  
+  cat(paste0("chr", chr," \n"))
+  
+  load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
+  
+
+  m <- match(dgeSQTL$SNPs$gene_id, names(dgeSQTL$meanExpr))
+   m.df <- match(names(dgeSQTL$tagwiseDispersion), paste0(dgeSQTL$table$SNP_id, "-",dgeSQTL$table$gene_id) )
+  
+  
+  df <- data.frame(meanExpr = log10(dgeSQTL$meanExpr[m]+1), tagwiseDispersion = log10(dgeSQTL$tagwiseDispersion), df = dgeSQTL$table[m.df, "df"])
+  
+
+  table(df$df)
+  sum(is.na(df$tagwiseDispersion))
+  
+  
+  pdf(paste0(out.dir, "DispVSmeanExpression_chr", chr, ".pdf" ), 7, 5)
+  
+#   ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
+#     theme_bw() +
+#     geom_point(size = 1) +
+#     geom_hline(aes(yintercept=log10(dgeSQTL$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
+#   print(ggp)
+  
+  #myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
+  myPalette <- colorRampPalette(brewer.pal(11, "PiYG"))
+  ggp2 <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion, colour = df )) +
+    theme_bw() +
+    geom_point(size = 2) +
+    geom_hline(aes(yintercept=log10(dgeSQTL$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)+
+    # theme(legend.position="none")+
+  theme(axis.text=element_text(size=16), axis.title=element_text(size=18,face="bold"), legend.title = element_text(size=16, face="bold"), legend.text = element_text(size = 14)) +
+    #scale_colour_gradientn(colours = myPalette(100), limits=c(1, 15), name = "df")
+    scale_colour_gradient(limits=c(1, 30), low = "blue", high="red", name = "df", na.value = "red")
+  print(ggp2)
+  
+  dev.off()
+  
+gc()
+
+  return(NULL)
+  
+}, mc.cores = 3)
 
 
 

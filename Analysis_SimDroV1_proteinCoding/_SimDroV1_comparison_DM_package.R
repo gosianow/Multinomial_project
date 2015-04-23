@@ -1,13 +1,17 @@
 #######################################################
-# 
+
 # Created 3 Feb 2014 
+# BioC 3.0
 
 # comprare the DM_0.1.2: tagwise Dipsersion and filtering; using htseq counts and bitseq counts
-# For DM: Filtering005
+# For DM: Filtering005, Filtering0, Filtering_DEXSeq
 
 # Update 5 Feb 2014:
 
-# BioC 3.0
+# Update 4 Mar 2015 
+# - add dispersion vs mean plot with marked FP
+# - add plot of raw and DM estimated ratios for DM FP
+
 
 #######################################################
 
@@ -20,72 +24,6 @@ metadata$condition <- as.factor(metadata$condition)
 
 metadata
 
-
-
-
-#######################################################
-# calculate gene-level p-values for DEXSeq with Simes' method
-#######################################################
-
-
-DEXSeqSimes <- function(dexseqExonFile, dexseqGeneFile, dexseqGeneFileSimes){
-  
-  dexseq.ex <- read.table(dexseqExonFile, header = T, as.is = TRUE, sep = "\t", fill = TRUE)
-  head(dexseq.ex)
-  
-  dexseq.ex <- dexseq.ex[!is.na(dexseq.ex$pvalue), c("geneID", "pvalue")]
-  
-  dexseq.ex.spl <- split(dexseq.ex, dexseq.ex$geneID)
-  
-  dexseq.g <- data.frame(geneID=names(dexseq.ex.spl), pvalue=0, padjust=0)
-  
-  dexseq.g$pvalue <- sapply(dexseq.ex.spl, function(g){
-    
-    n <- nrow(g)
-    pv <- min(sort(g$pvalue,decreasing = FALSE)*n/(1:n))
-    
-  })
-  
-  dexseq.g$padjust <- p.adjust(dexseq.g$pvalue, method = "BH")
-  
-  write.table(dexseq.g, dexseqGeneFileSimes, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
-  
-  
-  # comapre with DEXSeq results
-  
-  dexseq.g.org <- read.table(dexseqGeneFile, header = T, stringsAsFactors = FALSE)
-  
-  
-  d <- merge(dexseq.g.org, dexseq.g, by = 1, all=TRUE)
-  
-  sum(is.na(d$padjust.x))
-  sum(is.na(d$padjust.y))
-  sum(is.na(d$padjust.y) && is.na(d$padjust.x))
-  
-  d$padjust.x[is.na(d$padjust.x)] <- 1.1
-  d$padjust.y[is.na(d$padjust.y)] <- 1.1
-  
-  
-  pdf(gsub(".txt", ".pdf", dexseqGeneFile, fixed = TRUE))
-  plot(d$padjust.x, d$padjust.y, pch=19, xlab="DEXSeq", ylab="Simes")
-  abline(a=0, b=1, col="red")
-  smoothScatter(d$padjust.x, d$padjust.y, nrpoints = Inf, pch=19, xlab="DEXSeq", ylab="Simes")
-  abline(a=0, b=1, col="red")
-  smoothScatter(log(d$padjust.x), log(d$padjust.y), nrpoints = Inf, xlab="DEXSeq", ylab="Simes", main="log scale")
-  abline(a=0, b=1, col="red")
-  dev.off()
-  
-  
-  
-}
-
-
-dexseqExonFile <- "Results_from_Katarina/dexseq_1.10.8_exon_htseq_results.txt"
-dexseqGeneFile <- "Results_from_Katarina/dexseq_1.10.8_gene_htseq_results.txt"
-dexseqGeneFileSimes <- "Results_from_Katarina/dexseq_1.10.8_gene_Simes_htseq_results.txt"
-
-
-DEXSeqSimes(dexseqExonFile, dexseqGeneFile, dexseqGeneFileSimes)
 
 
 
@@ -113,6 +51,9 @@ sum(results[["htseq_dexseq"]]$adjPValue_htseq_dexseq < 0.05)
 
 rt <- read.table("Results_from_Katarina/cuffdiff_version_2.2.1_results.txt", header = T, as.is = TRUE)
 head(rt)
+### remove duplicated genes
+rt <- rt[order(rt$FDR, decreasing = FALSE),]
+rt <- rt[!duplicated(rt$gene_id), ]
 
 rt <- rt[,c("gene_id", "FDR")]
 colnames(rt) <- c("Gene",  "adjPValue_cuffdiff")
@@ -138,9 +79,9 @@ results[["bitseq_dexseq"]] <- rt
 
 count.method <- c("htseq", "bitseq_1.10.0")
 
-# Filtering <- "Filtering005/"
+ Filtering <- "Filtering005/"
 # Filtering <- "Filtering0/"
-Filtering <- "Filtering_DEXSeq/"
+# Filtering <- "Filtering_DEXSeq/"
 
 
 for(j in count.method){
@@ -210,9 +151,9 @@ write.table(simu_info, "Simu_info/simu_info.xls", quote = F, sep = "\t", row.nam
 #######################################################
 
 
-# out.dir <- "PLOTS_DM_0.1.2_Filtering005/"
+out.dir <- "PLOTS_DM_0.1.2_Filtering005/"
 # out.dir <- "PLOTS_DM_0.1.2_Filtering0/"
-out.dir <- "PLOTS_DM_0.1.2_Filtering_DEXSeq/"
+# out.dir <- "PLOTS_DM_0.1.2_Filtering_DEXSeq/"
 dir.create(out.dir, showWarnings=F, recursive=T)
 
 
@@ -239,7 +180,10 @@ dim(table)
 head(table)
 colnames(table)
 
-    
+
+
+tdp <- table[duplicated(table$gene_id, fromLast = T) | duplicated(table$gene_id, fromLast = F),]
+dim(tdp)
 
 
 ##############################################################################################################
@@ -252,16 +196,22 @@ library(gridExtra)
 
 
 # out.dir <- "PLOTS_DM_0.1.2_Filtering005/"
+
 # out.dir <- "PLOTS_DM_0.1.2_Filtering0/"
+
 out.dir <- "PLOTS_DM_0.1.2_Filtering_DEXSeq/"
 
 dir.create(out.dir, showWarnings=F, recursive=T)
 
 
 
+### load table with all results
+
 table <- read.table(paste0(out.dir,"/Table_all_results.xls"), header = T, stringsAsFactors = F)
 tableNames <- colnames(table)
 
+
+### assign colors to different methods
 
 allMethods <- gsub("adjPValue_", "",tableNames[grep(pattern = "adjPValue_", tableNames)])
 allMethods
@@ -402,7 +352,7 @@ for(j in names(methodsList)){
   status <- status[!NAs]
   
   
-  TPRvsFDR(status, apvs, col=colors[methods[1]], xlim=c(0,0.5), ylim=c(0.4,1), lwd=4, cex=2.5, cex.lab=1.45, cex.axis=1.5)
+  TPRvsFDR(status, apvs, col=colors[methods[1]], xlim=c(0,0.3), ylim=c(0.4,1), lwd=4, cex=2.5, cex.lab=1.45, cex.axis=1.5)
   
   for( i in methods[-1]){
     apvs <- table[,paste0("adjPValue_", i)]
@@ -445,7 +395,7 @@ for(j in names(methodsList)){
   status <- status[!NAs]
   
   
-  TPRvsFDR(status, apvs, col=colors[methods[1]], xlim=c(0,0.4), ylim=c(0.8,1), lwd=4, cex=2.5, cex.lab=1.45, cex.axis=1.5)
+  TPRvsFDR(status, apvs, col=colors[methods[1]], xlim=c(0,0.3), ylim=c(0.9,1), lwd=4, cex=2.5, cex.lab=1.45, cex.axis=1.5)
   
   for( i in methods[-1]){
     apvs <- table[,paste0("adjPValue_", i)]
@@ -489,7 +439,7 @@ for(j in names(methodsList)){
   status <- status[!NAs]
   
   
-  TPRvsFDR(status, apvs, col=colors[methods[1]], xlim=c(0,0.3), ylim=c(0.8,1), lwd=4, cex=2.5, cex.lab=1.45, cex.axis=1.5)
+  TPRvsFDR(status, apvs, col=colors[methods[1]], xlim=c(0,0.3), ylim=c(0.6,1), lwd=4, cex=2.5, cex.lab=1.45, cex.axis=1.5)
   
   for( i in methods[-1]){
     apvs <- table[,paste0("adjPValue_", i)]
@@ -526,8 +476,10 @@ plotVenn <- function(venne.genes, colors, venn.methods, methodsLeg, name1="", na
     colors.col <- colors.col[c(1, 3, 4 ,2)]
   
   venn.d <- venn.diagram(venne.genes[venn.methods], filename=NULL, fill = colors[venn.methods], col=colors.col, cex=cex, cat.cex=cat.cex, lwd=lwd, lty=lty, alpha=alpha, margin=margin, category.names=methodsLeg)
+
+  out.name <- gsub(pattern = "\\.", replacement = "_" ,paste0( name1, "Venn_Diagr_", name2))
   
-  pdf(paste0(out.dir, "/", name1, "Venn_Diagr_", name2,".pdf"))
+  pdf(paste0(out.dir, "/", out.name, ".pdf"))
   grid.draw(venn.d)
   dev.off()
   
@@ -539,19 +491,34 @@ plotVenn <- function(venne.genes, colors, venn.methods, methodsLeg, name1="", na
 # generate venn diagrams 
 #######################################################
 
+colors <- colors.org
+n.colors <- n.colors.org
+
+n.colors
+
 
 ## TP as a separate circle
 venne.genes <- list()
 for(i in n.colors){ 
   venne.genes[[i]] <- na.omit(table[ table[,paste0("adjPValue_", i)] < FDR.cutoff, "gene_id"]) 
 }
-venne.genes$True <- table[table$status == 1, "gene_id"]
+venne.genes$True <- na.omit(table[table$status == 1, "gene_id"])
+
+names(venne.genes)
 
 
+count.method <- "htseq"
+count.method <- "bitseq"
 
-methodsListLeg <- methodsList <- list(
-  DM = n.colors[grepl("fc_", n.colors) & grepl("DM", n.colors) & !grepl("M2", n.colors) & !grepl("M4", n.colors) & !grepl("M8", n.colors) & !grepl("adj", n.colors)],
-  DMadj = n.colors[grepl("fc_", n.colors) & grepl("DM", n.colors) & !grepl("M2", n.colors) & !grepl("M4", n.colors) & !grepl("M8", n.colors) & grepl("adj", n.colors)])
+DM.methods <- n.colors[grepl(count.method, n.colors) & grepl("DM", n.colors)]
+
+methodsListLeg <- methodsList <- list()
+
+for(i in 1:length(DM.methods)){
+  methodsListLeg[[DM.methods[i]]] <- methodsList[[DM.methods[i]]] <- c(DM.methods[i], paste0(count.method, "_dexseq"))
+}
+
+
 
 
 for(j in names(methodsList)){
@@ -559,42 +526,257 @@ for(j in names(methodsList)){
   methods <- methodsList[[j]]
   methodsLeg <- methodsListLeg[[j]]
   
-  plotVenn(venne.genes, colors=c(colors[methods], True="grey"), venn.methods = c(methods, "True"), methodsLeg = c(methodsLeg, "TRUE"),  name1=name, name2=j, margin=0.1, cat.cex=0.8, cex=1.7)
+  plotVenn(venne.genes, colors=c(colors[methods], True="grey"), venn.methods = c(methods, "True"), methodsLeg = c(methodsLeg, "TRUE"),  name1=name, name2=j, margin=0.1, cat.cex=2, cex=1.7)
   
 }
 
 
 
+##############################################################################################################
+# Plots of FP called by DM
+##############################################################################################################
+
+library(limma)
+source("/home/gosia/R/R_Multinomial_project/DM_package_devel/0_my_printHead.R")
+
+library(edgeR)
+
+
+#######################################################
+# plot dispersion vs mean & mark FP
+#######################################################
+
+FilteringList <- c("Filtering_DEXSeq", "Filtering0", "Filtering005")
+count.methodList <- c("bitseq", "htseq")
+count.method.fileList <- c("bitseq_1.10.0", "htseq")
+
+for(f in 1:length(FilteringList)){
+  
+  Filtering <- FilteringList[f]
+  
+  out.dir <- file.path(paste0("PLOTS_DM_0.1.2_", Filtering))
+  dir.create(out.dir, showWarnings=F, recursive=T)
+  
+  ### load table with all results
+  
+  table <- read.table(paste0(out.dir,"/Table_all_results.xls"), header = T, stringsAsFactors = F)
+  tableNames <- colnames(table)
+   
+  ### assign colors to different methods
+  
+  allMethods <- gsub("adjPValue_", "",tableNames[grep(pattern = "adjPValue_", tableNames)])
+  
+  ### generate ggplot hue colors 
+  gg_color_hue <- function(n) {
+    hues = seq(15, 375, length=n+1)
+    hcl(h=hues, l=65, c=100)[1:n]
+  }
+  
+  ramp <- gg_color_hue(length(allMethods))
+  
+  colors.org <- ramp
+  n.colors.org <- allMethods
+  names(colors.org) <- n.colors.org
+  
+  colors <- colors.org
+  n.colors <- n.colors.org
+  
+  
+  ## TP as a separate circle
+  venne.genes <- list()
+  for(i in allMethods){ 
+    venne.genes[[i]] <- na.omit(table[ table[,paste0("adjPValue_", i)] < FDR.cutoff, "gene_id"]) 
+  }
+  venne.genes$True <- na.omit(table[table$status == 1, "gene_id"])
+  
+  
+  for(cm in 1:length(count.method.fileList)){
+    
+    count.method.file <- count.method.fileList[cm]
+    count.method <- count.methodList[cm]
+       
+    res.path <- file.path("DM_0.1.2", count.method.file, Filtering)
+      
+    DM.methods <- allMethods[grepl(count.method, allMethods) & grepl("DM.*TG", allMethods)]
+    print(DM.methods)
+    
+    for(m in 1:length(DM.methods)){
+      
+      method <- DM.methods[m]
+      method
+      method.ref <- paste0(count.method, "_dexseq")
+      method.ref
+      
+      ### list of FP to plot
+#       FP2plot <- setdiff(setdiff(venne.genes[[method]], venne.genes[["True"]]), venne.genes[[method.ref]])
+      FP2plot <- setdiff(venne.genes[[method]], venne.genes[["True"]])
+      length(FP2plot)
+      
+      ### load DM pipeline results
+      dgeDM.rdata <- file.path(res.path, paste0(gsub( "\\.", "-",method), "_dgeDM.RData"))
+      print(dgeDM.rdata)
+      load(dgeDM.rdata)
+      dgeDM
+      
+      commonDispersion <- dgeDM$commonDispersion
+      tagwiseDispersion <- dgeDM$tagwiseDispersion
+      meanExpr <- dgeDM$meanExpr
+    
+      
+      pdf(file.path(out.dir, paste0("TREMDgammaVSmean_", gsub( "\\.", "_",method),".pdf")))
+      
+      # smoothScatter(log10(meanExpr), log10(tagwiseDispersion), xlab="log10 mean gene expression", ylab="log10 gamma +", nrpoints = Inf, colramp=colorRampPalette(c("white", "darkgrey")), pch = 19, cex=0.6, las = 2)
+      # points(log10(meanExpr[FP2plot]), log10(tagwiseDispersion[FP2plot]), pch = 19, cex=1, col= colors[method])
+      # abline(h = log10(commonDispersion), col = "grey", lwd = 3, lty = 3)
+      
+      df <- data.frame(meanExpr = log10(meanExpr+1), tagwiseDispersion = log10(tagwiseDispersion))
+      ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
+        theme_bw() +
+        labs(x = "log10 mean expression", y = "log10 tagwise gamma+") +
+        theme(axis.text=element_text(size=16),axis.title=element_text(size=18,face="bold")) +
+        geom_point(size = 2) +
+        geom_point(data = df[names(meanExpr) %in% FP2plot, ], aes(x = meanExpr, y = tagwiseDispersion), colour = colors[method], size = 3) +
+        geom_hline(aes(yintercept=log10(commonDispersion)), colour = "grey", linetype="dashed", size = 1)
+      print(ggp)
+      
+      
+      dev.off()
+      
+      
+    }
+    
+  }
+  
+}
 
 
 
+#######################################################
+# plot expression ratios of FP called by DM
+#######################################################
 
+nr.topG <- 20
 
+FilteringList <- c("Filtering_DEXSeq", "Filtering0", "Filtering005")
+count.methodList <- c("bitseq", "htseq")
+count.method.fileList <- c("bitseq_1.10.0", "htseq")
 
+for(f in 1:length(FilteringList)){
+  # f = 1
+  Filtering <- FilteringList[f]
+  
+  out.dir <- file.path(paste0("PLOTS_DM_0.1.2_", Filtering))
+  dir.create(out.dir, showWarnings=F, recursive=T)
+  
+  ### load table with all results
+  
+  table <- read.table(paste0(out.dir,"/Table_all_results.xls"), header = T, stringsAsFactors = F)
+  tableNames <- colnames(table)
+  rownames(table) <- table$gene_id
+  allMethods <- gsub("adjPValue_", "",tableNames[grep(pattern = "adjPValue_", tableNames)])
+  
 
+  ## TP as a separate circle
+  venne.genes <- list()
+  for(i in allMethods){ 
+    venne.genes[[i]] <- na.omit(table[ table[,paste0("adjPValue_", i)] < FDR.cutoff, "gene_id"]) 
+  }
+  venne.genes$True <- na.omit(table[table$status == 1, "gene_id"])
+  
+  
+  for(cm in 1:length(count.method.fileList)){
+    # cm = 1
+    count.method.file <- count.method.fileList[cm]
+    count.method <- count.methodList[cm]
+    
+    res.path <- file.path("DM_0.1.2", count.method.file, Filtering)
+    
+    DM.methods <- allMethods[grepl(count.method, allMethods) & grepl("DM.*TG", allMethods)]
+    print(DM.methods)
+    
+    for(m in 1:length(DM.methods)){
+      
+      method <- DM.methods[m]
+      method
+      method.ref <- paste0(count.method, "_dexseq")
+      method.ref
+      
+      ### list of FP to plot
+        FP2plot <- setdiff(setdiff(venne.genes[[method]], venne.genes[["True"]]), venne.genes[[method.ref]])
+#       FP2plot <- setdiff(venne.genes[[method]], venne.genes[["True"]])
+      print(length(FP2plot))
+      
+      ### order FP genes by significance
+      FP2plot <- FP2plot[order(table[table$gene_id %in% FP2plot, paste0("adjPValue_", method)], decreasing = FALSE)]
 
+      ### load DM pipeline results
+      dgeDM.rdata <- file.path(res.path, paste0(gsub( "\\.", "-",method), "_dgeDM.RData"))
+      print(dgeDM.rdata)
+      load(dgeDM.rdata)
+      # dgeDM
+      
+      commonDispersion <- dgeDM$commonDispersion
+      tagwiseDispersion <- dgeDM$tagwiseDispersion
+      meanExpr <- dgeDM$meanExpr
+      
+      
+      pdf(file.path(out.dir, paste0("ExonProportions_topFP_", gsub( "\\.", "_",method),".pdf")), width = 7, height = 3)
+      
+      for(g in 1:min(nr.topG, length(FP2plot))){
+        # g = 1
+        gene <- FP2plot[g]
+        # print(gene)
+        expr <- dgeDM$counts[[gene]]
+        colnames(expr) <- metadata$SampleName
+        rownames(expr) <- subset(dgeDM$genes, gene_id==gene)$ete_id    
+        tot <- colSums(expr)
+        labels <- strsplit2(rownames(expr), ":")[,2]
+        prop.smp <- data.frame( ete_id =  labels, t(apply(expr, 1, function(t){ t / tot })))  
+        n <- nrow(expr)  
+        prop.est <- data.frame(ete_id = labels, dgeDM$fit[[gene]]$piH)
+        
+        prop.smp.m <- melt(prop.smp, id.vars = "ete_id", variable.name = "Samples", value.name = "Proportions")  
+        Condition <- prop.smp.m$Samples 
+        levels(Condition) <- substr(levels(Condition), 1,2)
+        
+        prop.est.m <- melt(prop.est, id.vars = "ete_id", variable.name = "Samples", value.name = "Proportions")
+        
+#         ### line plots
+#         ggp <- ggplot() +
+#           theme_bw() +
+#           geom_line(data = prop.smp.m, aes(x = ete_id, y = Proportions, group = factor(Samples), colour = Condition )) +
+#           geom_point(data = prop.est.m, aes(x = ete_id, y = Proportions, group = factor(Samples), colour = Samples ), size = 3) +
+#           theme(axis.text.x = element_text(angle = 30, vjust = 0.5), axis.text=element_text(size=12), axis.title=element_text(size=14, face="bold"), legend.position="none") +
+#           ggtitle(paste0(gene))
+#         
+#         print(ggp)
+        
+        ### bar plots
+        ggb <- ggplot(prop.smp.m, aes(x = ete_id, y = Proportions, fill = factor(Samples))) +
+          theme_bw() + 
+          theme(axis.text.x = element_text(angle = 20, vjust = 0.5), axis.text=element_text(size=12), axis.title=element_text(size=14, face="bold"), legend.position="none") +
+          ggtitle(paste0(gene, " FDR = ", sprintf("%.02e",table[gene, paste0("adjPValue_", method)]), "\n log10 gamma = ", round(log10(tagwiseDispersion[gene]), digits = 2), " log10 mean expr = ", round(log10(meanExpr[gene] +1), 2))) +
+          geom_bar(stat = "identity", position=position_dodge()) +       
+          scale_fill_manual(values=c(rep("firebrick1", 4), rep("dodgerblue", 4))) +
+          geom_point(data = prop.est.m, aes(x = ete_id, y = Proportions, colour = factor(Samples), fill = factor(Samples)), position = position_jitterdodge(jitter.width = 0, jitter.height = 0 ), shape = 18, size = 3) +
+          scale_colour_manual(values=c(rep("firebrick", 1), rep("dodgerblue4", 1))) +
+          coord_cartesian(ylim = c(0, 1)) 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        print(ggb)
+        
+        
+        
+      }
+      
+      
+      dev.off()
+      
+      
+    }
+    
+  }
+  
+}
 
 
 

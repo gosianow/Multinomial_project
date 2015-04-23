@@ -384,19 +384,6 @@ dgeDM <- dmEstimateTagwiseDisp(dgeDM, group = NULL, adjust = TRUE, mode = "const
 
 write.table(dgeDM$tagwiseDispersion, paste0(out.dir, "/",name1,"_tagwiseDispersion.txt"), quote=F, sep="\t", row.names=T, col.names=F)
 
-
-pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
-
-df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
-ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
-  theme_bw() +
-  geom_point(size = 1) +
-  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
-print(ggp)
-
-dev.off()
-
-
 dgeDM <- dmFit(dgeDM, group=NULL, dispersion= "tagwiseDispersion", mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores)
 
 
@@ -405,19 +392,36 @@ dgeDM <- dmTest(dgeDM, mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, ver
 write.table(dgeDM$table, paste0(out.dir, "/",name1,"_results.xls"), quote=F, sep="\t", row.names=F, col.names=T)
 save(dgeDM, file=paste0(out.dir, "/",name1,"_dgeDM.RData"))
 
+
+
+
 load(paste0(out.dir, "/",name1,"_dgeDM.RData"))
 
 
-pdf(paste0(out.dir, "/",name1,"_DispVsMean_df.pdf"), 12, 10)
+pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
+
+df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
+ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
+  theme_bw() +
+  theme(axis.text=element_text(size=16),axis.title=element_text(size=18,face="bold")) +
+  geom_point(size = 1) +
+  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
+print(ggp)
+
+dev.off()
+
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean_df.pdf"), width = 7, height = 5)
 
 rownames(dgeDM$table) <- dgeDM$table$GeneID
 #myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
 myPalette <- colorRampPalette(brewer.pal(11, "PiYG"))
 ggp2 <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion, colour = dgeDM$table[names(dgeDM$meanExpr), "df"] )) +
   theme_bw() +
-  geom_point(size = 1) +
+  geom_point(size = 2) +
   geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)+
   # theme(legend.position="none")+
+  theme(axis.text=element_text(size=16), axis.title=element_text(size=18,face="bold"), legend.title = element_text(size=16, face="bold"), legend.text = element_text(size = 14)) +
   #scale_colour_gradientn(colours = myPalette(100), limits=c(1, 15), name = "df")
   scale_colour_gradient(limits=c(1, 10), low = "blue", high="red", name = "df", na.value = "red")
 print(ggp2)
@@ -449,19 +453,6 @@ dgeDM <- dmEstimateTagwiseDisp(dgeDM, group = NULL, adjust = TRUE, mode = "const
 
 write.table(dgeDM$tagwiseDispersion, paste0(out.dir, "/",name1,"_tagwiseDispersion.txt"), quote=F, sep="\t", row.names=T, col.names=F)
 
-
-pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
-
-df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
-ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
-  theme_bw() +
-  geom_point(size = 1) +
-  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
-print(ggp)
-
-dev.off()
-
-
 dgeDM <- dmFit(dgeDM, group=NULL, dispersion= "tagwiseDispersion", mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores)
 
 
@@ -471,7 +462,39 @@ write.table(dgeDM$table, paste0(out.dir, "/",name1,"_results.xls"), quote=F, sep
 save(dgeDM, file=paste0(out.dir, "/",name1,"_dgeDM.RData"))
 
 
-gc()
+
+load(paste0(out.dir, "/",name1,"_dgeDM.RData"))
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
+
+df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
+ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
+  theme_bw() +
+  theme(axis.text=element_text(size=16),axis.title=element_text(size=18,face="bold")) +
+  geom_point(size = 1) +
+  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
+print(ggp)
+
+dev.off()
+
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean_df.pdf"), width = 7, height = 5)
+
+rownames(dgeDM$table) <- dgeDM$table$GeneID
+#myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
+myPalette <- colorRampPalette(brewer.pal(11, "PiYG"))
+ggp2 <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion, colour = dgeDM$table[names(dgeDM$meanExpr), "df"] )) +
+  theme_bw() +
+  geom_point(size = 2) +
+  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)+
+  # theme(legend.position="none")+
+  theme(axis.text=element_text(size=16), axis.title=element_text(size=18,face="bold"), legend.title = element_text(size=16, face="bold"), legend.text = element_text(size = 14)) +
+  #scale_colour_gradientn(colours = myPalette(100), limits=c(1, 15), name = "df")
+  scale_colour_gradient(limits=c(1, 10), low = "blue", high="red", name = "df", na.value = "red")
+print(ggp2)
+
+dev.off()
+
 
 ######################################
 ### DM_TG:optimize
@@ -494,19 +517,6 @@ dgeDM <- dmEstimateTagwiseDisp(dgeDM, group = NULL, adjust = TRUE, mode = "const
 
 write.table(dgeDM$tagwiseDispersion, paste0(out.dir, "/",name1,"_tagwiseDispersion.txt"), quote=F, sep="\t", row.names=T, col.names=F)
 
-
-pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
-
-df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
-ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
-  theme_bw() +
-  geom_point(size = 1) +
-  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
-print(ggp)
-
-dev.off()
-
-
 dgeDM <- dmFit(dgeDM, group=NULL, dispersion= "tagwiseDispersion", mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores)
 
 
@@ -516,7 +526,38 @@ write.table(dgeDM$table, paste0(out.dir, "/",name1,"_results.xls"), quote=F, sep
 save(dgeDM, file=paste0(out.dir, "/",name1,"_dgeDM.RData"))
 
 
-gc()
+
+load(paste0(out.dir, "/",name1,"_dgeDM.RData"))
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
+
+df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
+ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
+  theme_bw() +
+  theme(axis.text=element_text(size=16),axis.title=element_text(size=18,face="bold")) +
+  geom_point(size = 1) +
+  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
+print(ggp)
+
+dev.off()
+
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean_df.pdf"), width = 7, height = 5)
+
+rownames(dgeDM$table) <- dgeDM$table$GeneID
+#myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
+myPalette <- colorRampPalette(brewer.pal(11, "PiYG"))
+ggp2 <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion, colour = dgeDM$table[names(dgeDM$meanExpr), "df"] )) +
+  theme_bw() +
+  geom_point(size = 2) +
+  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)+
+  # theme(legend.position="none")+
+  theme(axis.text=element_text(size=16), axis.title=element_text(size=18,face="bold"), legend.title = element_text(size=16, face="bold"), legend.text = element_text(size = 14)) +
+  #scale_colour_gradientn(colours = myPalette(100), limits=c(1, 15), name = "df")
+  scale_colour_gradient(limits=c(1, 10), low = "blue", high="red", name = "df", na.value = "red")
+print(ggp2)
+
+dev.off()
 
 
 ######################################
@@ -541,18 +582,6 @@ dgeDM <- dmEstimateTagwiseDisp(dgeDM, group = NULL, adjust = TRUE, mode = "const
 write.table(dgeDM$tagwiseDispersion, paste0(out.dir, "/",name1,"_tagwiseDispersion.txt"), quote=F, sep="\t", row.names=T, col.names=F)
 
 
-pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
-
-df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
-ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
-  theme_bw() +
-  geom_point(size = 1) +
-  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
-print(ggp)
-
-dev.off()
-
-
 dgeDM <- dmFit(dgeDM, group=NULL, dispersion= "tagwiseDispersion", mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores)
 
 
@@ -561,21 +590,36 @@ dgeDM <- dmTest(dgeDM, mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, ver
 write.table(dgeDM$table, paste0(out.dir, "/",name1,"_results.xls"), quote=F, sep="\t", row.names=F, col.names=T)
 save(dgeDM, file=paste0(out.dir, "/",name1,"_dgeDM.RData"))
 
-load(paste0(out.dir, "/",name1,"_dgeDM.RData"))
-
 gc()
 
 
-pdf(paste0(out.dir, "/",name1,"_DispVsMean_df.pdf"), 12, 10)
+load(paste0(out.dir, "/",name1,"_dgeDM.RData"))
+
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
+
+df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
+ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
+  theme_bw() +
+  theme(axis.text=element_text(size=16),axis.title=element_text(size=18,face="bold")) +
+  geom_point(size = 1) +
+  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
+print(ggp)
+
+dev.off()
+
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean_df.pdf"), width = 7, height = 5)
 
 rownames(dgeDM$table) <- dgeDM$table$GeneID
 #myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
 myPalette <- colorRampPalette(brewer.pal(11, "PiYG"))
 ggp2 <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion, colour = dgeDM$table[names(dgeDM$meanExpr), "df"] )) +
   theme_bw() +
-  geom_point(size = 1) +
+  geom_point(size = 2) +
   geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)+
   # theme(legend.position="none")+
+  theme(axis.text=element_text(size=16), axis.title=element_text(size=18,face="bold"), legend.title = element_text(size=16, face="bold"), legend.text = element_text(size = 14)) +
   #scale_colour_gradientn(colours = myPalette(100), limits=c(1, 15), name = "df")
   scale_colour_gradient(limits=c(1, 10), low = "blue", high="red", name = "df", na.value = "red")
 print(ggp2)
@@ -606,19 +650,6 @@ dgeDM <- dmEstimateTagwiseDisp(dgeDM, group = NULL, adjust = TRUE, mode = "const
 write.table(dgeDM$tagwiseDispersion, paste0(out.dir, "/",name1,"_tagwiseDispersion.txt"), quote=F, sep="\t", row.names=T, col.names=F)
 
 
-pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
-
-df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
-ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
-  theme_bw() +
-  geom_point(size = 1) +
-  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
-print(ggp)
-
-dev.off()
-
-
-
 dgeDM <- dmFit(dgeDM, group=NULL, dispersion= "tagwiseDispersion", mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores)
 
 
@@ -626,6 +657,41 @@ dgeDM <- dmTest(dgeDM, mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, ver
 
 write.table(dgeDM$table, paste0(out.dir, "/",name1,"_results.xls"), quote=F, sep="\t", row.names=F, col.names=T)
 save(dgeDM, file=paste0(out.dir, "/",name1,"_dgeDM.RData"))
+
+
+
+load(paste0(out.dir, "/",name1,"_dgeDM.RData"))
+
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
+
+df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
+ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
+  theme_bw() +
+  theme(axis.text=element_text(size=16),axis.title=element_text(size=18,face="bold")) +
+  geom_point(size = 1) +
+  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
+print(ggp)
+
+dev.off()
+
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean_df.pdf"), width = 7, height = 5)
+
+rownames(dgeDM$table) <- dgeDM$table$GeneID
+#myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
+myPalette <- colorRampPalette(brewer.pal(11, "PiYG"))
+ggp2 <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion, colour = dgeDM$table[names(dgeDM$meanExpr), "df"] )) +
+  theme_bw() +
+  geom_point(size = 2) +
+  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)+
+  # theme(legend.position="none")+
+  theme(axis.text=element_text(size=16), axis.title=element_text(size=18,face="bold"), legend.title = element_text(size=16, face="bold"), legend.text = element_text(size = 14)) +
+  #scale_colour_gradientn(colours = myPalette(100), limits=c(1, 15), name = "df")
+  scale_colour_gradient(limits=c(1, 10), low = "blue", high="red", name = "df", na.value = "red")
+print(ggp2)
+
+dev.off()
 
 
 
@@ -650,20 +716,6 @@ dgeDM <- dmEstimateTagwiseDisp(dgeDM, group = NULL, adjust = TRUE, mode = "const
 
 write.table(dgeDM$tagwiseDispersion, paste0(out.dir, "/",name1,"_tagwiseDispersion.txt"), quote=F, sep="\t", row.names=T, col.names=F)
 
-
-pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
-
-df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
-ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
-  theme_bw() +
-  geom_point(size = 1) +
-  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
-print(ggp)
-
-dev.off()
-
-
-
 dgeDM <- dmFit(dgeDM, group=NULL, dispersion= "tagwiseDispersion", mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores)
 
 
@@ -674,18 +726,36 @@ save(dgeDM, file=paste0(out.dir, "/",name1,"_dgeDM.RData"))
 
 
 
-pdf(paste0(out.dir, "/",name1,"_DispVsMean_df.pdf"), 12, 10)
+
+load(paste0(out.dir, "/",name1,"_dgeDM.RData"))
+
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean.pdf"))
+
+df <- data.frame(meanExpr = log10(dgeDM$meanExpr+1), tagwiseDispersion = log10(dgeDM$tagwiseDispersion))
+ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
+  theme_bw() +
+  theme(axis.text=element_text(size=16),axis.title=element_text(size=18,face="bold")) +
+  geom_point(size = 1) +
+  geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
+print(ggp)
+
+dev.off()
+
+
+pdf(paste0(out.dir, "/",name1,"_DispVsMean_df.pdf"), width = 7, height = 5)
 
 rownames(dgeDM$table) <- dgeDM$table$GeneID
 #myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
 myPalette <- colorRampPalette(brewer.pal(11, "PiYG"))
 ggp2 <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion, colour = dgeDM$table[names(dgeDM$meanExpr), "df"] )) +
   theme_bw() +
-  geom_point(size = 1) +
+  geom_point(size = 2) +
   geom_hline(aes(yintercept=log10(dgeDM$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)+
   # theme(legend.position="none")+
+  theme(axis.text=element_text(size=16), axis.title=element_text(size=18,face="bold"), legend.title = element_text(size=16, face="bold"), legend.text = element_text(size = 14)) +
   #scale_colour_gradientn(colours = myPalette(100), limits=c(1, 15), name = "df")
-  scale_colour_gradient(limits=c(1, 15), low = "blue", high="red", name = "df", na.value = "red")
+  scale_colour_gradient(limits=c(1, 10), low = "blue", high="red", name = "df", na.value = "red")
 print(ggp2)
 
 dev.off()

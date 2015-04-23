@@ -6,6 +6,10 @@
 # Compare the results of sQTLseekeR 2.0 & DM_0.1.2
 # Make the plots of transcript usage for interesting SNPs
 
+# Update 22 Apr 2015
+# - check why the DM p-values histogram is so strange, why there are so many pvs = 1
+
+
 ############################################################################################
 
 
@@ -38,17 +42,18 @@ res.dm <- read.table("DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispe
 res.dm.all <- read.table("DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispersion/CEU_results_all.txt", header = TRUE, as.is = TRUE)
 
 ## load tre.df
-load(paste0("DM_0.1.1_sQTL_analysis/Data/", "tre.df.RData"))
+load(paste0("DM_0.1.2_sQTL_analysis/Data/", "tre.df.RData"))
 head(tre.df)
 
 ## load genotypes
-load(paste0("DM_0.1.1_sQTL_analysis/Data/", "genotypes_basedOnSQTLseekeRresults.RData"))
+load(paste0("DM_0.1.2_sQTL_analysis/Data/", "genotypes_basedOnSQTLseekeRresults.RData"))
 head(genotypes)
 
 tagwDisp <- read.table("DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispersion/tagwiseDispersion.txt", header = TRUE, as.is = TRUE)
 
 
 ################### Import Phase1.Geuvadis_dbSnp137_idconvert_snpOnly.txt
+### Add the GWAS snp ID
 
 # snpIDconvert <- read.table(paste0("GEUVADIS_genotypes/Phase1.Geuvadis_dbSnp137_idconvert_snpOnly.txt"), header = FALSE, as.is=TRUE)
 # save(snpIDconvert, file = paste0("sQTLseekeR20_analysis/Data/snpIDconvert.RData"))
@@ -60,7 +65,7 @@ load(paste0("sQTLseekeR20_analysis/Data/snpIDconvert.filtered.RData"))
 head(snpIDconvert.filtered)
 
 res.seeker <- merge(x = res.seeker, y = snpIDconvert.filtered, by="snpId", all.x = TRUE, sort = FALSE)
-
+head(res.seeker)
 
 #######################################################
 # generate hist of p-values
@@ -73,9 +78,202 @@ dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 pdf(paste0(out.dir, "hist_pvalues.pdf"))
 
 hist(res.dm.all[, "PValue"], col = "#FF7F00", breaks = 100, cex.lab=1.5, cex.axis = 1.5, xlab="P-values", main = "DM", cex.main = 3)
+
 hist(res.seeker.all[, "pv"], col = "#1874CD" , breaks = 100, cex.lab=1.5, cex.axis = 1.5, xlab="P-values", main = "sQTLseekeR", cex.main = 3)
 
 dev.off()
+
+
+#######################################################
+# investigate the DM hist of p-values
+#######################################################
+
+head(res.dm.all)
+
+dim(res.dm.all)
+
+res.dm.all <- res.dm.all[complete.cases(res.dm.all), ]
+
+
+table(res.dm.all$PValue == 1)
+
+table(res.dm.all$PValue == 1 & res.dm.all$LR  < 0)
+
+table(res.dm.all$LR < 0)
+
+mean(res.dm.all$LR < 0)
+
+
+min(res.dm.all$LR)
+res.dm.all[which.min(res.dm.all$LR), ]
+
+
+
+min(res.dm.all[res.dm.all$LR < 0, "df"])
+
+
+pdf(paste0(out.dir, "hist_df.pdf"))
+hist(res.dm.all[, "df"], breaks = 100)
+hist(res.dm.all[res.dm.all$LR < 0, "df"], breaks = 100)
+dev.off()
+
+
+
+png(paste0(out.dir, "LR_LLnull.png"), 700, 700)
+smoothScatter(log10(-res.dm.all$LLnull), res.dm.all$LR, nrpoints = Inf)
+abline(h = 0, col = 2)
+dev.off()
+
+
+
+
+pdf(paste0(out.dir, "hist_pvalues_DM.pdf"))
+hist(res.dm.all[, "PValue"], col = "#FF7F00", breaks = 100, cex.lab=1.5, cex.axis = 1.5, main = "DM", cex.main = 3)
+hist(res.dm.all[res.dm.all$LR > 0, "PValue"], col = "#FF7F00", breaks = 100, cex.lab=1.5, cex.axis = 1.5, main = "DM", cex.main = 3)
+dev.off()
+
+
+
+
+res.pv1 <- res.dm.all[res.dm.all$PValue == 1, ]
+
+
+
+table(table(res.pv1$gene_id))
+
+
+table(res.pv1$gene_id)[table(res.pv1$gene_id) == 7929] ## ENSG00000160183.8
+
+
+
+res1g <- res.dm.all[res.dm.all$gene_id == "ENSG00000160183.8", ]
+dim(res1g)
+
+
+res1g <- res.pv1[res.pv1$gene_id == "ENSG00000160183.8" & res.pv1$LR < 0, ]
+dim(res1g)
+
+head(res1g)
+
+
+
+
+
+
+out.dir <- "DM_0.1.2_sQTL_analysis/Plots_TagwiseDisp_gridCommonDispersion/DM_PValuesEqual1/"
+dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
+
+### have to set up this values
+plot.snps <- res1g[, c("gene_id", "SNP_id")]
+plot.names <- paste0("nr", 1:nrow(res1g))
+plot.main <- paste0("LR ", res1g[, c("LR")])
+
+
+
+for(i in 1:5){
+  # i = 10
+  cat(paste0("SNPgene ", i, "\n"))
+  
+  gene <- plot.snps[i, 1]
+  snp <- plot.snps[i, 2]
+  
+  expr.rel <- tre.df.rel[tre.df.rel$geneId == gene, -c(1,2)]
+  expr <- tre.df[tre.df$geneId == gene, -c(1,2)]
+  
+  rownames(expr.rel) <- tre.df.rel[tre.df.rel$geneId == gene, "trId"]
+  rownames(expr) <- tre.df[tre.df$geneId == gene, "trId"]
+  
+  geno <- genotypes[genotypes$snpId == snp & genotypes$geneId == gene , -c(1:5)]
+  
+  samps.keep <- !is.na(geno) & !is.na(expr.rel[1,])
+  
+  expr.rel <- expr.rel[,samps.keep]
+  expr <- expr[,samps.keep]
+  geno <- geno[samps.keep]
+  names(geno) <- colnames(expr.rel)
+  
+  
+  
+  ######## Plot Splicing ratio
+  
+  tom <- cbind(expr.rel, Transcript=rownames(expr.rel))  
+  m <- melt(tom, id.vars = "Transcript" )
+  m$genotype <- NA
+  
+  geno.val <- sort(unique(geno))  
+  var.counts <- rep(0, length(geno.val))
+  names(var.counts) <- paste0("variant ", geno.val)
+  
+  for(j in 1:length(geno.val)){    
+    m$genotype[m$variable %in% names(geno[geno == geno.val[j]] )] <- paste0("variant ", geno.val[j])
+    var.counts[j] <- length(geno[geno == geno.val[j]])   
+  }
+  
+  ggplot(data = m, aes(x = genotype, y = value)) + ggtitle(paste0(snp, "-", gene, "\n", plot.main[i])) +
+    geom_boxplot(aes(fill = Transcript), width = 1)  + scale_x_discrete(labels = paste0(names(var.counts), " (",var.counts, ")" ), name="") + ylab("Splicing ratio") + theme(panel.grid.major=element_blank(), axis.text=element_text(size=13),axis.title=element_text(size=14,face="bold")) + geom_vline(xintercept=c(1.5,2.5),color="white")
+  
+  ggsave(paste0(out.dir, "sQTLseekeR_expr",plot.names[i],"_", snp, "-", gene, ".pdf"), width = 15, height = 7, units = "in")
+  
+  
+  
+  ######## Plot Expression (RPKM)
+  
+  # expr <- round(expr * 100)
+  
+  tom <- cbind(expr, Transcript=rownames(expr))  
+  m <- melt(tom, id.vars = "Transcript" )
+  m$genotype <- NA
+  
+  geno.val <- sort(unique(geno))  
+  var.counts <- rep(0, length(geno.val))
+  names(var.counts) <- paste0("variant ", geno.val)
+  
+  for(j in 1:length(geno.val)){    
+    m$genotype[m$variable %in% names(geno[geno == geno.val[j]] )] <- paste0("variant ", geno.val[j])
+    var.counts[j] <- length(geno[geno == geno.val[j]])   
+  }
+  
+  ggplot(data = m, aes(x = genotype, y = value)) + ggtitle(paste0(snp, "-", gene, "\n", plot.main[i])) +
+    geom_boxplot(aes(fill = Transcript), width = 1)  + scale_x_discrete(labels = paste0(names(var.counts), " (",var.counts, ")" ), name="") + ylab("Expression (RPKM)") + theme(panel.grid.major=element_blank(), axis.text=element_text(size=13),axis.title=element_text(size=14,face="bold")) + geom_vline(xintercept=c(1.5,2.5),color="white")
+  
+  ggsave(paste0(out.dir, "DM_expr",plot.names[i],"_", snp, "-", gene, ".pdf"), width = 15, height = 7, units = "in")
+  
+  
+}
+
+
+
+
+##### load results from DM_v5
+
+
+res5 <- read.table("DMv5_sQTL_analysis/dgeSQTL_results.txt", header = TRUE, sep = "\t")
+
+table(res5$LR < 0)
+
+
+
+
+### read in the complete results
+
+
+load("DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispersion/dgeSQTL_chr21.RData")
+
+gene <- plot.snps[1,1]
+snp <- plot.snps[1,2]
+
+
+dgeSQTL$fit[snp]
+
+dgeSQTL$fit.null[snp]
+
+
+
+
+
+
+
+
 
 
 
