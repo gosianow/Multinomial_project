@@ -159,8 +159,7 @@ DirmultGrp <- function(Y, X, b0, lamda=0, cc=0, model="dirmult",
 			alpha <- alpha0
 			alpha.d1 <- alpha * d1
 			
-			while (ObjFunc(b1[, 1] + alpha.d1, 1, b1, Y, X, model=model) - 
-					ObjFunc(b1[, 1], 1, b1, Y, X, model=model) > alpha*sigma*Delta) {
+			while (ObjFunc(b1[, 1] + alpha.d1, 1, b1, Y, X, model=model) - ObjFunc(b1[, 1], 1, b1, Y, X, model=model) > alpha*sigma*Delta) {
 				alpha <- alpha * delta
 				alpha.d1 <- alpha * d1
 				# This step is used to eliminate those small non-zero coefficients

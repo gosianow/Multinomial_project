@@ -125,6 +125,9 @@ abline(h = 0, col = 2)
 dev.off()
 
 
+pdf(paste0(out.dir, "hist_LR.pdf"))
+hist(res.dm.all$LR, breaks = 500)
+dev.off()
 
 
 pdf(paste0(out.dir, "hist_pvalues_DM.pdf"))
@@ -134,39 +137,63 @@ dev.off()
 
 
 
-
+### results for genes with p-value = 1
 res.pv1 <- res.dm.all[res.dm.all$PValue == 1, ]
 
-
-
 table(table(res.pv1$gene_id))
-
-
+### gene that has most of the p-values = 1
 table(res.pv1$gene_id)[table(res.pv1$gene_id) == 7929] ## ENSG00000160183.8
 
 
-
+### results for this one gene
 res1g <- res.dm.all[res.dm.all$gene_id == "ENSG00000160183.8", ]
 dim(res1g)
 
-
 res1g <- res.pv1[res.pv1$gene_id == "ENSG00000160183.8" & res.pv1$LR < 0, ]
 dim(res1g)
-
 head(res1g)
 
 
 
 
+### get the cases with 2 transripts for plotting the piH likelihoods
+mex <- read.table("DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispersion/meanExpr.txt", header = TRUE, sep = "\t")
 
+g1tr <- mex[mex$nrTrans == 2, ]
+
+g0lr <- res.dm.all[res.dm.all$LR < 0, ]
+
+sum(unique(g0lr$gene_id) %in% unique(g1tr$gene_id))
+
+g1tr0lr <- g0lr[g0lr$gene_id %in% g1tr$gene_id, ]
+
+min(g1tr0lr$LR)
+
+
+
+### plot the transcript expressions and ratios
 
 out.dir <- "DM_0.1.2_sQTL_analysis/Plots_TagwiseDisp_gridCommonDispersion/DM_PValuesEqual1/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 ### have to set up this values
-plot.snps <- res1g[, c("gene_id", "SNP_id")]
-plot.names <- paste0("nr", 1:nrow(res1g))
-plot.main <- paste0("LR ", res1g[, c("LR")])
+
+### some results from top of the table
+# plot.snps <- res1g[, c("gene_id", "SNP_id")]
+# plot.names <- paste0("nr", 1:nrow(res1g))
+# plot.main <- paste0("LR ", res1g[, c("LR")])
+
+### genes with 2 transcripts
+plot.snps <- g1tr0lr[, c("gene_id", "SNP_id")]
+plot.names <- paste0("_1tr_nr", 1:nrow(g1tr0lr))
+plot.main <- paste0("LR ", g1tr0lr[, c("LR")])
+
+
+### SNP with most negative LR
+minNeg <- res.dm.all[which.min(res.dm.all$LR),, drop= FALSE]
+plot.snps <- minNeg[,  c("gene_id", "SNP_id")]
+plot.names <- paste0("_minNeg_nr", 1:nrow(minNeg))
+plot.main <- paste0("LR ", minNeg[, c("LR")])
 
 
 
@@ -246,7 +273,6 @@ for(i in 1:5){
 
 ##### load results from DM_v5
 
-
 res5 <- read.table("DMv5_sQTL_analysis/dgeSQTL_results.txt", header = TRUE, sep = "\t")
 
 table(res5$LR < 0)
@@ -254,28 +280,66 @@ table(res5$LR < 0)
 
 
 
-### read in the complete results
+### read in the complete results from DM_0.1.2
 
 
 load("DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispersion/dgeSQTL_chr21.RData")
+load("DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispersion/dgeSQTL_chr19.RData")
 
 gene <- plot.snps[1,1]
 snp <- plot.snps[1,2]
 
 
-dgeSQTL$fit[snp]
-
-dgeSQTL$fit.null[snp]
-
+### the SNP that have the most negative LR - snp_5_179056159-ENSG00000169045.13
+load("DM_0.1.2_sQTL_analysis/Results_TagwiseDisp_gridCommonDispersion/dgeSQTL_chr5.RData")
 
 
+gene <- plot.snps[1,1]
+snp <- plot.snps[1,2]
+
+
+### display all the fitting results 
+
+dgeSQTL$fit[[snp]]
+
+colSums(dgeSQTL$fit[[snp]]$piH)
+
+
+dgeSQTL$fit.null[[snp]]
+
+sort(as.numeric(dgeSQTL$fit.null[[snp]]$piH), decreasing = TRUE)[1:20]
+sort(as.numeric(dgeSQTL$fit[[snp]]$piH[, 1]), decreasing = TRUE)[1:20]
+
+
+dgeSQTL$meanExpr[gene]
+
+
+dgeSQTL$counts[[gene]]
+
+dim(dgeSQTL$counts[[gene]])
 
 
 
 
 
 
+y <- dgeSQTL$counts[[gene]]
+gamma0 <- dgeSQTL$dispersion[paste0(snp, "-", gene)]
 
+
+
+fitDM <- DM::dmOneGeneGroup(y, gamma0, mode = c("constrOptim", "constrOptim2", "constrOptim2G", "optim2", "optim2NM", "FisherScoring")[5], epsilon = 1e-05, maxIte = 1000, verbose = FALSE, plot = FALSE)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 #######################################################
 # generate venn diagrams 
