@@ -36,6 +36,8 @@ simulate_from_DM <- function(sample.size = 5, s = "1" , pi.org = c(1/3, 1/3, 1/3
       t <- round(rnorm(sample.size, mean=nM, sd=nD))  
     if(tot=="uni")
       t <- rep(nM, sample.size)
+    if(tot=="fix")
+      t <- nM
     
     # simulate multinomial
     d <- sapply(1:sample.size, function(u) rmultinom(1, prob=g.dir[u,], size=t[u]))    

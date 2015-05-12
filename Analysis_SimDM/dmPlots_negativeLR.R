@@ -58,7 +58,7 @@ piH <- c(0.4922335018, 0.1577883831, 0.0529355261, 0.0293984041, 0.0290847238, 0
 
 pi.org <- piH/sum(piH)
 
-simPar <- list(s = "GEUVADIS_snp_5_179056159_10tr_df_g01", sample.size = 100, pi.org = pi.org, g0.org = 0.1, nr.genes = 1e+03, nM = 20000, tot = "uni")
+simPar <- list(s = "GEUVADIS_snp_5_179056159_10tr_df_g01", sample.size = 100, pi.org = pi.org, g0.org = 0.1092517, nr.genes = 1e+03, nM = 20000, tot = "uni")
 
 
 
@@ -152,6 +152,8 @@ pdf(paste0(out.dir.s, "/hist_diffLR.pdf"))
 hist(tab$LR_co2g - tab$LR_co2, breaks = 100, col = "#1E90FF")
 
 dev.off()
+
+
 
 tab[tab$LR_co2g < 0 | tab$LR_co2 < 0, ]
 
