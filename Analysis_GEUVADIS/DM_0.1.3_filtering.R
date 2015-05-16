@@ -1,10 +1,11 @@
 # BioC 3.0
 
 # Created 27 Jan 2014
-# Modyfied 27 Jan 2014
 
+# Updated 27 Jan 2014
 # Perform filtering that should be optimal for DM
 
+# Updated 13 May 2015
 # Create dgeSQTL object 
 
 ##############################################################################################################
@@ -20,7 +21,7 @@ source("/home/gosia/R/R_Multinomial_project/DM_package_devel/0_my_printHead.R")
 
 library(edgeR)
 
-out.dir <- "DM_0.1.2bis_sQTL_analysis/Data/"
+out.dir <- "DM_0_1_3_Data"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 
@@ -271,17 +272,21 @@ dim(unique(genotypes))
 
 
 ##########################################################################################
-# Create dgeSQTL
+# Create dgeSQTL for chromosome 5
 ##########################################################################################
 
 
-# genotypes <- read.table(paste0(out.dir, "genotypes.txt"), header = TRUE, as.is = TRUE)
-# tre.df <- read.table(paste0(out.dir, "tre.df.txt"), header = TRUE, as.is = TRUE)
-
+genotypes <- read.table(paste0(out.dir, "/genotypes_chr5.txt"), header = TRUE, as.is = TRUE)
 # load(paste0(out.dir, "genotypes.RData"))
+head(genotypes)
 
-load(paste0(out.dir, "genotypes_basedOnSQTLseekeRresults.RData"))
-load(paste0(out.dir, "tre.df.RData"))
+
+# tre.df <- read.table(paste0(out.dir, "/tre.df.txt"), header = TRUE, as.is = TRUE)
+load(paste0(out.dir, "/tre.df.RData"))
+head(tre.df)
+
+### keep only the genes from chr5
+tre.df <- tre.df[tre.df$geneId %in% genotypes$geneId, ]
 
 
 library(edgeR)
@@ -289,7 +294,7 @@ library(edgeR)
 dgeSQTL <- DGEList(counts = tre.df[, -c(1, 2)], genes = tre.df[, c(1, 2)])
 rownames(dgeSQTL$counts) <- tre.df[,"trId"]
 
-dgeSQTL$counts <- round(dgeSQTL$counts * 100) ### RPKM -> counts
+dgeSQTL$counts <- round(dgeSQTL$counts) ### RPKM -> counts round(dgeSQTL$counts * 100)
 
 dgeSQTL$samples <- colnames(tre.df[, -c(1, 2)])
 colnames(dgeSQTL$genes) <- c("ete_id", "gene_id")
@@ -305,22 +310,23 @@ dgeSQTL$counts <- split(data.frame(dgeSQTL$counts), factor(dgeSQTL$genes$gene_id
 dgeSQTL$counts <- lapply(dgeSQTL$counts, as.matrix)  ## !!! have to conver into matrix, othewise ERROR
 
 
-save(dgeSQTL, file=paste0(out.dir, "dgeSQTL.RData"))
+# save(dgeSQTL, file=paste0(out.dir, "/dgeSQTL.RData"))
+save(dgeSQTL, file=paste0(out.dir, "/dgeSQTL_chr5.RData"))
 
 
 
 
 
-### subset the dgeSQTL object 
-keep.genes <- intersect(unique(dgeSQTL$genes$gene_id), unique(dgeSQTL$SNPs$gene_id))[1:20]
-
-dgeSQTL$counts <- dgeSQTL$counts[keep.genes]
-dgeSQTL$genes <- dgeSQTL$genes[dgeSQTL$genes$gene_id %in% names(dgeSQTL$counts), ]
-dgeSQTL$genotypes <- dgeSQTL$genotypes[dgeSQTL$SNPs$gene_id %in% names(dgeSQTL$counts), ]
-dgeSQTL$SNPs <- dgeSQTL$SNPs[dgeSQTL$SNPs$gene_id %in% names(dgeSQTL$counts), ]
-
-
-dgeSQTL$counts$ENSG00000159733.9
+# ### subset the dgeSQTL object 
+# keep.genes <- intersect(unique(dgeSQTL$genes$gene_id), unique(dgeSQTL$SNPs$gene_id))[1:20]
+# 
+# dgeSQTL$counts <- dgeSQTL$counts[keep.genes]
+# dgeSQTL$genes <- dgeSQTL$genes[dgeSQTL$genes$gene_id %in% names(dgeSQTL$counts), ]
+# dgeSQTL$genotypes <- dgeSQTL$genotypes[dgeSQTL$SNPs$gene_id %in% names(dgeSQTL$counts), ]
+# dgeSQTL$SNPs <- dgeSQTL$SNPs[dgeSQTL$SNPs$gene_id %in% names(dgeSQTL$counts), ]
+# 
+# 
+# dgeSQTL$counts$ENSG00000159733.9
 
 
 
