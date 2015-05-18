@@ -3,6 +3,9 @@
 # Created 12 May 2015
 # Analyse data from DM_0.1.2_filtering / Compare with DM_0.1.2_analysis for only one chromosome chr5 
 
+# Updated 18 May 2015
+# Analyse data from DM_0.1.3_filtering
+# Use different rel.tol in constrOptim for estimating  pi
 
 
 ##############################################################################################################
@@ -22,8 +25,8 @@ library(gridExtra)
 library(RColorBrewer)
 
 
-# Rfiles <- list.files("/home/gosia/R/R_Multinomial_project/DM_package_devel/DM/R/", full.names=TRUE)
-# for(i in Rfiles) source(i)
+Rfiles <- list.files("/home/gosia/R/R_Multinomial_project/DM_package_devel/DM/R/", full.names=TRUE)
+for(i in Rfiles) source(i)
 
 
 
@@ -32,6 +35,7 @@ library(RColorBrewer)
 # Run the DMsQTL pipeline by chromosome 
 ##########################################################################################
 
+######### run on DM_0_1_2 data 
 out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_2_TagwiseDisp_gridNone/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -39,11 +43,37 @@ load(paste0("DM_0_1_2_Data/dgeSQTL.RData"))
 
 
 
-### run on chr5 DM_0_1_3 data 
+######### run on chr5 DM_0_1_3 data / default tol = sqrt(.Machine$double.eps)
 out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 load(paste0("DM_0_1_3_Data/dgeSQTL_chr5.RData"))
+
+
+
+######### run on chr5 DM_0_1_3 data / version with tol = 1e-10
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tol10/"
+dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
+
+load(paste0("DM_0_1_3_Data/dgeSQTL_chr5.RData"))
+
+
+
+
+######### run on chr5 DM_0_1_3 data / version with tol = .Machine$double.eps
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tolEps/"
+dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
+
+load(paste0("DM_0_1_3_Data/dgeSQTL_chr5.RData"))
+
+
+
+######### run on chr5 DM_0_1_3 data / version with tol = .Machine$double.eps
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tolEps_constrOptim2/"
+dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
+
+load(paste0("DM_0_1_3_Data/dgeSQTL_chr5.RData"))
+
 
 
 
@@ -93,7 +123,7 @@ for(chr in 5){
   ######### tagwiseDispersion
   cat(paste0("chr", chr," estimate tagwise dispersion \n"))
   
-  dgeSQTL <- dmSQTLEstimateTagwiseDisp(dgeSQTL, adjust = TRUE, mode = c("constrOptim", "constrOptim2", "constrOptim2G", "optim2", "optim2NM", "FisherScoring")[3], epsilon = 1e-05, maxIte = 1000, modeDisp = c("optimize", "optim", "constrOptim", "grid")[4], interval = c(0, 50), tol = 1e-08,  initDisp = 2, initWeirMoM = TRUE, gridLength = 10, gridRange = c(-6, 6), trend = c("none", "commonDispersion", "trendedDispersion")[1], priorDf = 10, span = 0.3, mcCores = mcCores, verbose = FALSE, plot = FALSE)
+  dgeSQTL <- dmSQTLEstimateTagwiseDisp(dgeSQTL, adjust = TRUE, mode = c("constrOptim", "constrOptim2", "constrOptim2G", "optim2", "optim2NM", "FisherScoring")[2], epsilon = 1e-05, maxIte = 1000, modeDisp = c("optimize", "optim", "constrOptim", "grid")[4], interval = c(0, 50), tol = 1e-08,  initDisp = 2, initWeirMoM = TRUE, gridLength = 10, gridRange = c(-6, 6), trend = c("none", "commonDispersion", "trendedDispersion")[1], priorDf = 10, span = 0.3, mcCores = mcCores, verbose = FALSE, plot = FALSE)
   
   tagwiseDispersion <- data.frame(SNP_id = names( dgeSQTL$tagwiseDispersion), tagwiseDispersion = dgeSQTL$tagwiseDispersion, stringsAsFactors = FALSE, row.names = NULL)
   
@@ -107,13 +137,13 @@ for(chr in 5){
   ######### DM fitting 
   cat(paste0("chr", chr," fitting DM \n"))
   
-  dgeSQTL <- dmSQTLFit(dgeSQTL, model="full", dispersion=c("commonDispersion", "tagwiseDispersion")[2], mode=c("constrOptim", "constrOptim2", "constrOptim2G", "optim2", "optim2NM", "FisherScoring")[3], epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores )
+  dgeSQTL <- dmSQTLFit(dgeSQTL, model="full", dispersion=c("commonDispersion", "tagwiseDispersion")[2], mode=c("constrOptim", "constrOptim2", "constrOptim2G", "optim2", "optim2NM", "FisherScoring")[2], epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores )
   
   
   ######### LR testing
   cat(paste0("chr", chr," testing \n"))
   
-  dgeSQTL <- dmSQTLTest(dgeSQTL, dispersion=c("commonDispersion", "tagwiseDispersion")[2], mode="constrOptim2G", epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores)
+  dgeSQTL <- dmSQTLTest(dgeSQTL, dispersion=c("commonDispersion", "tagwiseDispersion")[2], mode=c("constrOptim", "constrOptim2", "constrOptim2G", "optim2", "optim2NM", "FisherScoring")[2], epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = mcCores)
   
   save(dgeSQTL, file = paste0(out.dir, "dgeSQTL_chr",chr,".RData"))
   
@@ -128,9 +158,9 @@ for(chr in 5){
 
 
 ### check how many snps are called significant 
-dim(dgeSQTL$table)
-sum(dgeSQTL$table$FDR < 0.05, na.rm = TRUE)
+table(dgeSQTL$table$FDR < 0.05, useNA = "always")
 
+table(dgeSQTL$table$LR < 0.05, useNA = "always")
 
 ### check how many genes are called significant 
 length(unique((dgeSQTL$table$gene_id)))
@@ -141,6 +171,22 @@ length(unique((dgeSQTL$table$gene_id[dgeSQTL$table$FDR < 0.05])))
 ##########################################################################################
 #### Choose the results to work with 
 ##########################################################################################
+
+
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tolEps/"
+out.dir.plots <- "DM_0_1_3_sQTL_analysis/Plots_Data_DM_0_1_3_TagwiseDisp_gridNone_tolEps/"
+dir.create(out.dir.plots, showWarnings = FALSE, recursive = TRUE)
+
+load(paste0(out.dir,"/dgeSQTL_chr5.RData"))
+
+
+
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tol10/"
+out.dir.plots <- "DM_0_1_3_sQTL_analysis/Plots_Data_DM_0_1_3_TagwiseDisp_gridNone_tol10/"
+dir.create(out.dir.plots, showWarnings = FALSE, recursive = TRUE)
+
+load(paste0(out.dir,"/dgeSQTL_chr5.RData"))
+
 
 
 out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone/"
@@ -287,9 +333,11 @@ write.table(res.all, paste0(out.dir, "CEU_results_all_info.txt" ), quote = FALSE
 
 
 ### SNPs with negative LR and 2 transcripts
+table(res.all$LR < 0, useNA = "always")
+
 res.all[res.all$LR < 0 & res.all$nrTrans == 2, ]
 
-
+dim(res.all[res.all$LR < 0 & res.all$nrTrans == 3, ])
 
 
 ### check how many snps are called significant 
@@ -300,6 +348,64 @@ sum(res$FDR < 0.05, na.rm = TRUE)
 length(unique((res$gene_id)))
 length(unique((res$gene_id[res$FDR < 0.05])))
 
+
+
+
+##########################################################################################
+####### Compare LR in res.all with different tol 
+##########################################################################################
+
+
+# tol = 1e-10
+
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone/"
+res.all.tol8 <- read.table(paste0(out.dir, "CEU_results_all_info.txt" ), header = TRUE, sep = "\t", as.is = TRUE)
+
+
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tol10/"
+res.all.tol10 <- read.table(paste0(out.dir, "CEU_results_all_info.txt" ), header = TRUE, sep = "\t", as.is = TRUE)
+
+
+res <- merge(res.alltol8, res.all.tol10, by = "SNPgene", sort = FALSE)
+
+out.dir.plots.c <- "DM_0_1_3_sQTL_analysis/Plots_Data_DM_0_1_3_Compare/"
+dir.create(out.dir.plots.c, showWarnings = FALSE, recursive = TRUE)
+
+
+png(paste0(out.dir.plots.c, "LRvsLRtol10.png"), 700, 700)
+smoothScatter(res[, "LR.x"], res[, "LR.y"], nrpoints = Inf, xlab = "tol = 1e-8", ylab = "tol = 1e-10")
+dev.off()
+
+png(paste0(out.dir.plots.c, "LRvsLRtol10_b.png"), 700, 700)
+smoothScatter(res[, "LR.x"], res[, "LR.y"], nrpoints = Inf, xlab = "tol = 1e-8", ylab = "tol = 1e-10", xlim = c(-100, 100), ylim = c(-100, 100))
+dev.off()
+
+
+
+
+### tol = eps
+
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone/"
+res.all.tol8 <- read.table(paste0(out.dir, "CEU_results_all_info.txt" ), header = TRUE, sep = "\t", as.is = TRUE)
+
+
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tolEps/"
+res.all.tol10 <- read.table(paste0(out.dir, "CEU_results_all_info.txt" ), header = TRUE, sep = "\t", as.is = TRUE)
+
+
+res <- merge(res.all.tol8, res.all.tol10, by = "SNPgene", sort = FALSE)
+
+out.dir.plots.c <- "DM_0_1_3_sQTL_analysis/Plots_Data_DM_0_1_3_Compare/"
+dir.create(out.dir.plots.c, showWarnings = FALSE, recursive = TRUE)
+
+
+png(paste0(out.dir.plots.c, "LRvsLRtolEps.png"), 700, 700)
+smoothScatter(res[, "LR.x"], res[, "LR.y"], nrpoints = Inf, xlab = "tol = 1e-8", ylab = "tol = eps")
+dev.off()
+
+png(paste0(out.dir.plots.c, "LRvsLRtolEps_b.png"), 700, 700)
+smoothScatter(res[, "LR.x"], res[, "LR.y"], nrpoints = Inf, xlab = "tol = 1e-8", ylab = "tol = eps", xlim = c(-100, 100), ylim = c(-100, 100))
+dev.off()
 
 
 ##########################################################################################
@@ -315,7 +421,7 @@ dev.off()
 
 
 png(paste0(out.dir.plots, "LRvsNrTrans2.png"), 800, 700)
-ggp <- ggplot(res.all, aes(nrTrans, LR, colour = minSampSize)) + geom_point(alpha = 0.2, position = position_jitter(width = .4)) + scale_color_gradient(low = "red", high = "blue", limits=c(1, 15))
+ggp <- ggplot(res.all, aes(nrTrans, LR, colour = minSampSize)) + geom_point(alpha = 0.2, position = position_jitter(width = .4)) + scale_color_gradient(low = "red", high = "blue", limits=c(1, 30))
 print(ggp)
 dev.off()
 
@@ -641,6 +747,38 @@ plot.snps <- res.all[res.all$LR < 0 & res.all$nrTrans == 2, c("gene_id", "SNP_id
 plotPath <- paste0(out.dir.plots, "Proportions_negativeLR_2trans.pdf")
 
 plotProportions(dgeSQTL, plot.snps, plotPath)
+
+
+
+### SNPs with negative LR and 3 transcripts
+
+res.plot <- res.all[res.all$LR < 0 & res.all$nrTrans == 3, ]
+res.plot <- res.plot[order(res.plot$LR, decreasing = FALSE), ]
+res.plot <- res.plot[!duplicated(res.plot$gene_id), ]
+
+
+plot.snps <- head(res.plot[, c("gene_id", "SNP_id")])
+
+plotPath <- paste0(out.dir.plots, "Proportions_negativeLR_3trans.pdf")
+
+plotProportions(dgeSQTL, plot.snps, plotPath)
+
+
+
+
+### SNPs with the most negative LR 
+
+res.plot <- res.all[res.all$LR < 0, ]
+res.plot <- res.plot[order(res.plot$LR, decreasing = FALSE), ]
+res.plot <- res.plot[!duplicated(res.plot$gene_id), ]
+
+
+plot.snps <- head(res.plot[, c("gene_id", "SNP_id")])
+
+plotPath <- paste0(out.dir.plots, "Proportions_mostNegativeLR.pdf")
+
+plotProportions(dgeSQTL, plot.snps, plotPath)
+
 
 
 
