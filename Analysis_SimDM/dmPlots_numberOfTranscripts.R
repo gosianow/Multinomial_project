@@ -13,6 +13,13 @@
 # Update 17 May 2015 
 # Plot likelihood versus PiH for genes with 2 transcripts
 
+# Update 19 May 2015 
+# Plot likelihood versus PiH for genes with 3 transcripts
+
+# Update 20 May 2015 
+# Plot score versus PiH for genes with 3 transcripts
+
+
 ##############################################################################
 
 setwd("/home/gosia/Multinomial_project/Simulations_DM/")
@@ -82,6 +89,10 @@ snp <- "snp_5_49699894"
 gene <- "ENSG00000181904.8"
 snp <- "snp_5_134183242"
 
+out.dir.s <- paste0(out.dir,"/GEUVADIS_", snp, "_3trans/")
+dir.create(out.dir.s, showWarnings=F, recursive=T)
+out.dir.s <- paste0(out.dir.s, snp, "_")
+
 
 
 ### the SNP that have the most negative LR
@@ -91,6 +102,9 @@ gene <- "ENSG00000145730.15"
 snp <- "snp_5_102094652"
 
 
+out.dir.s <- paste0(out.dir,"/GEUVADIS_", snp, "_mostNegative/")
+dir.create(out.dir.s, showWarnings=F, recursive=T)
+out.dir.s <- paste0(out.dir.s, snp, "_")
 
 
 
@@ -98,10 +112,6 @@ snp <- "snp_5_102094652"
 # Prepare dge object
 ##################################################################################
 
-out.dir.s <- paste0(out.dir,"/GEUVADIS_", snp, "_mostNegative/")
-dir.create(out.dir.s, showWarnings=F, recursive=T)
-
-out.dir.s <- paste0(out.dir.s, snp, "_")
 
 
 
@@ -154,6 +164,8 @@ plotName <- "_tolEps"
 
 dgeDMList <- list()
 
+
+
 modeList = c("constrOptim", "constrOptim2", "constrOptim2G", "optim2", "optim2G", "optim2NM", "FisherScoring")
 mode <- modeList[2]
 
@@ -163,7 +175,7 @@ modeDisp <- modeDispList[4]
 
 adjust = TRUE
 
-dgeDM <- dmEstimateTagwiseDisp(dge, group = NULL, adjust = adjust, mode = mode, epsilon = 1e-03, maxIte = 1000, modeDisp = modeDisp, interval = c(0, 1e+5), tol = 1e-10,  initDisp = 2, initWeirMoM = TRUE, gridLength = 10, gridRange = c(-6, 6), trend = c("none", "commonDispersion", "trendedDispersion")[1], priorDf = 10, span = 0.3, mcCores = 1, verbose = TRUE, plot = FALSE)
+dgeDM <- dmEstimateTagwiseDisp(dge, group = NULL, adjust = adjust, mode = mode, epsilon = 1e-03, maxIte = 1000, modeDisp = modeDisp, interval = c(0, 1e+5), tol = .Machine$double.eps,  initDisp = 2, initWeirMoM = TRUE, gridLength = 10, gridRange = c(-6, 6), trend = c("none", "commonDispersion", "trendedDispersion")[1], priorDf = 10, span = 0.3, mcCores = 1, verbose = TRUE, plot = FALSE)
   
 
 dgeDM$tagwiseDispersion
@@ -323,12 +335,19 @@ plotPLL_MSE <- function(PLL_MSE, plotPath){
 
 
 
+gridLength = 10
+gridRange = c(-6, 6)
+splinePts <- seq(from = gridRange[1], to = gridRange[2], length = gridLength)
+splineDisp <- dgeDM$commonDispersion * 2^splinePts
+
 
 gamma0 <- sort(c(seq(from = 6, to = 8, by = 0.02)[-1], dgeDM$tagwiseDispersion), decreasing = FALSE)
 plotPath <- paste0(out.dir.s, "PLL_MSE_", mode, "_", modeDisp,"_keep", keep, plotName, ".pdf")
 
 
 PLL_MSE <- calculatePLL_MSE(dgeDM, gamma0, mode)
+
+# PLL_MSE$tagwiseDispersion <- dgeDM$tagwiseDispersion
 plotPLL_MSE(PLL_MSE, plotPath)
 
 
@@ -339,6 +358,9 @@ plotPLL_MSE(PLL_MSE, plotPath)
 ##################################################################################
 # dgeDM$tagwiseDispersion[1] <- 1000
 
+
+# modeList = c("constrOptim", "constrOptim2", "constrOptim2G", "optim2", "optim2G", "optim2NM", "FisherScoring")
+# mode <- modeList[3]
 
 
 dgeDM <- dmFit(dgeDM, group=NULL, dispersion = "tagwiseDispersion", mode = mode, epsilon = 1e-05, maxIte = 1000, verbose=FALSE, mcCores = 1)
@@ -351,7 +373,7 @@ dgeDM$table
 
 dgeDMList[[mode]] <- dgeDM
 
-
+names(dgeDMList)
 
 ##################################################################################
 ################################# plot LL of piH for genes with 2 transcripts
@@ -412,7 +434,7 @@ plotLL <- function(dgeDM, piX, gamma0, mode, plotPath){
   colour <- c(gg_color_hue(ngroups), "orange")
   
   
-  df.est <- data.frame(pi = c(dgeDM$fit[[g]]$piH[1, ], dgeDM$fit.null[[g]]$piH[1, ]), LL = c(dgeDM$fit[[g]]$logLik, dgeDM$fit.null[[g]]$logLik), Condition = factor(c(paste0("X", lgroups), "LLnull")), levels = c(c(paste0("X", lgroups), "LLnull")))
+  df.est <- data.frame(pi = c(dgeDM$fit[[g]]$piH[1, ], dgeDM$fit.null[[g]]$piH[1, ]), LL = c(dgeDM$fit[[g]]$logLik, dgeDM$fit.null[[g]]$logLik), Condition = factor(c(paste0("X", lgroups), "LLnull"), levels = c(paste0("X", lgroups), "LLnull") ))
   
   df <- data.frame(pi = piX, LL, LLnull = LLnull)
   df <- melt(df, id.vars = "pi", variable.name = "Condition", value.name = "LL")
@@ -447,7 +469,430 @@ plotLL(dgeDM, piX, gamma0, mode, plotPath)
 
 
 
+##################################################################################
+################################# plot LL of piH for genes with 3 transcripts
+##################################################################################
 
+
+
+library(plotly)
+
+
+calculateLL <- function(dgeDM, piXY, gamma0, mode){
+  
+  g = 1
+  y <- dgeDM$counts[[g]]
+  transcripts <- rownames(y)
+  genes <- names(y)
+  ngenes <- length(y)
+  
+  group <- dgeDM$samples$group
+  group <- as.factor(group)
+  ngroups <- nlevels(group)
+  lgroups <- levels(group)
+  
+  igroups <- list()
+  for(gr in 1:ngroups){
+    # gr=2
+    igroups[[lgroups[gr]]] <- which(group == lgroups[gr])
+  }
+  
+  LL <- matrix(0, nrow(piXY), ngroups)
+  colnames(LL) <- lgroups
+  LLnull <- rep(0, nrow(piXY))
+  
+  for(i in 1:nrow(piXY)){
+    # i = 1    
+    
+    if(sum(piXY[i, ]) >= 1 - sqrt(.Machine$double.eps)){
+      LL[i, ] <- NA
+      LLnull[i] <- NA
+    }else{
+      switch(mode, 
+             
+             constrOptim2 = {
+               for(gr in 1:ngroups){                 
+                 LL[i, gr] <- dmLogLikkm1(as.numeric(piXY[i, ]), gamma0, y[, igroups[[gr]], drop = FALSE])               
+               }             
+               LLnull[i] <- dmLogLikkm1(as.numeric(piXY[i, ]), gamma0, y)            
+             },
+             
+             constrOptim2G = {
+               for(gr in 1:ngroups){                
+                 LL[i, gr] <- dmLogLikGkm1(as.numeric(piXY[i, ]), gamma0, y[, igroups[[gr]], drop = FALSE])               
+               }             
+               LLnull[i] <- dmLogLikGkm1(as.numeric(piXY[i, ]), gamma0, y)             
+             })
+    }
+    
+  }
+  
+  gg_color_hue <- function(n) {
+    hues = seq(15, 375, length=n+1)
+    hcl(h=hues, l=65, c=100)[1:n]
+  }
+  
+  colour <- c(gg_color_hue(ngroups), "orange")
+  
+  
+  df.est <- data.frame(x = c(dgeDM$fit[[g]]$piH[1, ], dgeDM$fit.null[[g]]$piH[1, ]), y = c(dgeDM$fit[[g]]$piH[2, ], dgeDM$fit.null[[g]]$piH[2, ]), LL = c(dgeDM$fit[[g]]$logLik, dgeDM$fit.null[[g]]$logLik), Condition = factor(c(paste0("X", lgroups), "LLnull"), levels = c(paste0("X", lgroups), "LLnull") ))
+  
+  df <- data.frame(piXY, LL, LLnull = LLnull)
+  
+  df <- melt(df, id.vars = c("x", "y"), variable.name = "Condition", value.name = "LL")
+  
+  
+  return(list(df = df, df.est = df.est, colour = colour, gamma0 = gamma0))
+  
+}
+
+
+plotLL <- function(LL, plotPath, range = 0.75){
+  
+ df <- LL$df
+ df.est <- LL$df.est
+ colour <- LL$colour
+ gamma0 <- LL$gamma0
+  
+# py <- plotly(username="gosianow", key="yy902bfs7g")  # open plotly connection
+# plotly_url <- rep(NA, nrow(df.est))
+
+myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
+
+
+pdf(plotPath, width = 8, height = 6)
+
+for(i in 1:nrow(df.est)){
+  # i = 1
+  Condition <- df.est$Condition[i]
+  
+  df.est.tmp <- df.est[df.est$Condition == Condition,]
+  df.tmp <- df[df$Condition == Condition,] 
+  
+  
+  
+  pll <- ggplot(df.tmp, aes(x=x, y=y, fill = LL)) + 
+    geom_tile() +
+    xlab(paste0(transcripts[1])) +
+    ylab(paste0(transcripts[2])) +
+    ggtitle(paste0("Condition ", Condition, "\n gamma0 = ", gamma0)) +
+    geom_point(data = df.est.tmp, aes(x = x, y = y), fill = colour[i], size = 4, alpha = 1, shape = 23) +
+    scale_fill_gradientn(colours = myPalette(200), limits = c(min(df.tmp$LL, na.rm = TRUE) + diff(range(df.tmp$LL, na.rm = TRUE))*range, max(df.tmp$LL, na.rm = TRUE)), na.value = myPalette(200)[1])
+    # scale_fill_gradientn(colours = myPalette(200), limits = c(min(df.tmp$LL, na.rm = TRUE) + diff(range(df.tmp$LL, na.rm = TRUE))/2, max(df.tmp$LL, na.rm = TRUE)))
+    # scale_fill_gradientn(colours = myPalette(200))
+
+  print(pll)
+  
+  
+  
+  ### for plotly can not have NAs 
+#   df.tmp[is.na(df.tmp$LL), "LL"] <- min(df.tmp$LL, na.rm = TRUE)
+#   
+#   pll <- ggplot(df.tmp, aes(x=x, y=y, fill = LL)) + 
+#     geom_tile() +
+#     xlab(paste0(transcripts[1])) +
+#     ylab(paste0(transcripts[2])) +
+#     ggtitle(paste0("Condition ", Condition))
+#   
+#   out <- py$ggplotly(pll, kwargs=list(filename=paste0("LLpiH_", i), fileopt="overwrite"))
+#   plotly_url[i] <- out$response$url
+  
+}
+
+dev.off() 
+  
+
+
+}
+
+
+
+
+piX <- seq(0, 1, by = 0.1)
+piX <- piX[c(-1, -length(piX))]
+piY <- seq(0, 1, by = 0.1)
+piY <- piY[c(-1, -length(piY))]
+
+piXY <- expand.grid(x=piX, y=piY)  
+# piXY <- piXY[rowSums(piXY) < 1, ]
+
+
+gamma0 <- dgeDM$tagwiseDispersion
+
+plotPath <- paste0(out.dir.s, "LLpiH_", mode, "_", modeDisp,"_keep", keep, plotName, ".pdf")
+
+LL <- calculateLL(dgeDM, piXY, gamma0, mode)
+
+plotLL(LL, plotPath)
+
+
+
+
+
+#### plot LL for "constrOptim2"  and "constrOptim2G"
+
+
+
+piX <- seq(0.1, 0.3, by = 0.001)
+piX <- piX[c(-1, -length(piX))]
+piY <- seq(0.6, 0.8, by = 0.001)
+piY <- piY[c(-1, -length(piY))]
+piXY <- expand.grid(x=piX, y=piY)  
+
+gamma0 <- dgeDMList[["constrOptim2"]]$tagwiseDispersion
+
+
+
+### constrOptim2
+
+LL2 <- calculateLL(dgeDMList[["constrOptim2"]], piXY, gamma0, mode = "constrOptim2")
+
+plotPath <- paste0(out.dir.s, "LLpiH_", mode = "constrOptim2", "_", modeDisp,"_keep", keep, plotName, ".pdf")
+
+plotLL(LL2, plotPath)
+
+
+### constrOptim2G
+
+LL2G <- calculateLL(dgeDMList[["constrOptim2G"]], piXY, gamma0, mode = "constrOptim2G")
+
+plotPath <- paste0(out.dir.s, "LLpiH_", mode = "constrOptim2G", "_", modeDisp,"_keep", keep, plotName, ".pdf")
+
+plotLL(LL2G, plotPath)
+
+
+
+## plot the difference between LL
+LLdiff <- LL2G
+LLdiff[["df"]][, "LL"] <- LL2G[["df"]][, "LL"] - LL2[["df"]][, "LL"]
+LLdiff[["df.est"]][, "LL"] <- NA
+
+
+plotPath <- paste0(out.dir.s, "LLdifference", modeDisp,"_keep", keep, plotName, ".pdf")
+
+plotLL(LLdiff, plotPath, range = 0)
+
+
+##################################################################################
+################################# plot score of piH for genes with 3 transcripts
+##################################################################################
+
+
+
+library(plotly)
+
+
+calculateSC <- function(dgeDM, piXY, gamma0, mode){
+  
+  g = 1
+  y <- dgeDM$counts[[g]]
+  transcripts <- rownames(y)
+  genes <- names(y)
+  ngenes <- length(y)
+  
+  group <- dgeDM$samples$group
+  group <- as.factor(group)
+  ngroups <- nlevels(group)
+  lgroups <- levels(group)
+  
+  igroups <- list()
+  for(gr in 1:ngroups){
+    # gr=2
+    igroups[[lgroups[gr]]] <- which(group == lgroups[gr])
+  }
+  
+  SC1 <- matrix(0, nrow(piXY), ngroups)
+  colnames(SC1) <- lgroups
+  SC2 <- matrix(0, nrow(piXY), ngroups)
+  colnames(SC2) <- lgroups
+  SCnull1 <- rep(0, nrow(piXY))
+  SCnull2 <- rep(0, nrow(piXY))
+  
+  
+  for(i in 1:nrow(piXY)){
+    # i = 1    
+    
+    if(sum(piXY[i, ]) >= 1 - sqrt(.Machine$double.eps)){
+      SC1[i, ] <- NA
+      SC2[i, ] <- NA
+      SCnull1[i] <- NA
+      SCnull2[i] <- NA
+    }else{
+      switch(mode, 
+             
+             constrOptim2 = {
+               for(gr in 1:ngroups){                 
+                 sc <- dmScoreFunkm1(as.numeric(piXY[i, ]), gamma0, y[, igroups[[gr]], drop = FALSE])    
+                 SC1[i, gr] <- sc[1]
+                 SC2[i, gr] <- sc[2]
+               }             
+               sc <- dmScoreFunkm1(as.numeric(piXY[i, ]), gamma0, y)        
+               SCnull1[i] <- sc[1]
+               SCnull2[i] <- sc[2]
+             },
+             
+             constrOptim2G = {
+               for(gr in 1:ngroups){                
+                 sc <- dmScoreFunGkm1(as.numeric(piXY[i, ]), gamma0, y[, igroups[[gr]], drop = FALSE])    
+                 SC1[i, gr] <- sc[1]
+                 SC2[i, gr] <- sc[2]
+               }             
+               sc <- dmScoreFunGkm1(as.numeric(piXY[i, ]), gamma0, y)        
+               SCnull1[i] <- sc[1]
+               SCnull2[i] <- sc[2]           
+             })
+    }
+    
+  }
+  
+  gg_color_hue <- function(n) {
+    hues = seq(15, 375, length=n+1)
+    hcl(h=hues, l=65, c=100)[1:n]
+  }
+  
+  colour <- c(gg_color_hue(ngroups), "orange")
+  
+  
+  df.est <- data.frame(x = c(dgeDM$fit[[g]]$piH[1, ], dgeDM$fit.null[[g]]$piH[1, ]), y = c(dgeDM$fit[[g]]$piH[2, ], dgeDM$fit.null[[g]]$piH[2, ]), Condition = factor(c(paste0("X", lgroups), "null"), levels = c(paste0("X", lgroups), "null") ), SC = NA)
+  
+  df1 <- data.frame(piXY, SC1, null = SCnull1)  
+  df1 <- melt(df1, id.vars = c("x", "y"), variable.name = "Condition", value.name = "SC")
+  df2 <- data.frame(piXY, SC2, null = SCnull2)  
+  df2 <- melt(df2, id.vars = c("x", "y"), variable.name = "Condition", value.name = "SC")
+  
+  return(list(df1 = df1, df2 = df2, df.est = df.est, colour = colour, gamma0 = gamma0))
+  
+}
+
+
+plotSC <- function(SC, plotPath, range = 1){
+  
+  df1 <- SC$df1
+  df2 <- SC$df2
+  df.est <- SC$df.est
+  colour <- SC$colour
+  gamma0 <- SC$gamma0
+
+  myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
+  
+  
+  pdf(plotPath, width = 8, height = 6)
+  
+  for(i in 1:nrow(df.est)){
+    # i = 1
+    Condition <- df.est$Condition[i]
+    
+    df.est.tmp <- df.est[df.est$Condition == Condition,]
+    df1.tmp <- df1[df1$Condition == Condition,]     
+    limit <- max(abs(df1.tmp$SC), na.rm= TRUE)*range
+    
+    sc <- ggplot(df1.tmp, aes(x=x, y=y, fill = SC)) + 
+      geom_tile() +
+      xlab(paste0(transcripts[1])) +
+      ylab(paste0(transcripts[2])) +
+      ggtitle(paste0("Condition ", Condition, " pi1 \n gamma0 = ", gamma0)) +
+      geom_point(data = df.est.tmp, aes(x = x, y = y), fill = colour[i], size = 4, alpha = 1, shape = 23) +
+      # scale_fill_gradientn(colours = myPalette(200))
+      # scale_fill_gradientn(colours = myPalette(200), limits = c(- max(df1$SC, na.rm= TRUE), max(df1$SC, na.rm= TRUE)))
+      scale_fill_gradient2(low = "red", mid = "white", high = "blue", limits = c(-limit , limit))
+    # scale_fill_gradient2(low = "red", mid = "white", high = "blue")
+    
+    
+    print(sc)
+
+    df2.tmp <- df2[df2$Condition == Condition,] 
+    limit <- max(abs(df2.tmp$SC), na.rm= TRUE)*range
+    
+    
+    sc <- ggplot(df2.tmp, aes(x=x, y=y, fill = SC)) + 
+      geom_tile() +
+      xlab(paste0(transcripts[1])) +
+      ylab(paste0(transcripts[2])) +
+      ggtitle(paste0("Condition ", Condition, " pi2 \n gamma0 = ", gamma0)) +
+      geom_point(data = df.est.tmp, aes(x = x, y = y), fill = colour[i], size = 4, alpha = 1, shape = 23) +
+      scale_fill_gradient2(low = "red", mid = "white", high = "blue", limits = c(- limit, limit))
+      # scale_fill_gradient2(low = "red", mid = "white", high = "blue")
+    
+    print(sc)
+    
+    
+  }
+  
+  dev.off() 
+  
+  
+  
+}
+
+
+
+
+piX <- seq(0, 1, by = 0.1)
+piX <- piX[c(-1, -length(piX))]
+piY <- seq(0, 1, by = 0.1)
+piY <- piY[c(-1, -length(piY))]
+
+piXY <- expand.grid(x=piX, y=piY)  
+# piXY <- piXY[rowSums(piXY) < 1, ]
+
+
+gamma0 <- dgeDM$tagwiseDispersion
+
+plotPath <- paste0(out.dir.s, "SCOREpiH_", mode, "_", modeDisp,"_keep", keep, plotName, ".pdf")
+
+
+
+SC <- calculateSC(dgeDM, piXY, gamma0, mode)
+
+plotSC(SC, plotPath)
+
+
+
+
+#### plot SCORE for "constrOptim2"  and "constrOptim2G"
+
+
+
+piX <- seq(0.1, 0.3, by = 0.001)
+piX <- piX[c(-1, -length(piX))]
+piY <- seq(0.6, 0.8, by = 0.001)
+piY <- piY[c(-1, -length(piY))]
+piXY <- expand.grid(x=piX, y=piY)  
+
+gamma0 <- dgeDMList[["constrOptim2"]]$tagwiseDispersion
+
+
+
+### constrOptim2
+
+SC2 <- calculateSC(dgeDMList[["constrOptim2"]], piXY, gamma0, mode = "constrOptim2")
+
+plotPath <- paste0(out.dir.s, "SCOREpiH_", mode = "constrOptim2", "_", modeDisp,"_keep", keep, plotName, ".pdf")
+
+plotSC(SC2, plotPath, range = 0.2)
+
+
+### constrOptim2G
+
+SC2G <- calculateSC(dgeDMList[["constrOptim2G"]], piXY, gamma0, mode = "constrOptim2G")
+
+plotPath <- paste0(out.dir.s, "SCOREpiH_", mode = "constrOptim2G", "_", modeDisp,"_keep", keep, plotName, ".pdf")
+
+plotSC(SC2G, plotPath, range = 0.2)
+
+
+
+
+## plot the difference between SCORES
+SCdiff <- SC2G
+SCdiff[["df1"]][, "SC"] <- SC2G[["df1"]][, "SC"] - SC2[["df1"]][, "SC"]
+SCdiff[["df2"]][, "SC"] <- SC2G[["df2"]][, "SC"] - SC2[["df2"]][, "SC"]
+SCdiff[["df.est"]][, "SC"] <- NA
+
+
+plotPath <- paste0(out.dir.s, "SCOREdifference", modeDisp,"_keep", keep, plotName, ".pdf")
+
+plotSC(SCdiff, plotPath, range = 0.1)
 
 
 
