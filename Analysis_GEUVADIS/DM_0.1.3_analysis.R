@@ -68,8 +68,8 @@ load(paste0("DM_0_1_3_Data/dgeSQTL_chr5.RData"))
 
 
 
-######### run on chr5 DM_0_1_3 data / version with tol = .Machine$double.eps
-out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tolEps_constrOptim2/"
+######### run on chr5 DM_0_1_3 data / version with tol = 1e-10
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tol10_constrOptim2/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 load(paste0("DM_0_1_3_Data/dgeSQTL_chr5.RData"))
@@ -90,7 +90,7 @@ keep.genes <- merge(keep.genes, unique(dgeSQTL.org$SNPs[, c("gene_id", "chr")]),
 dim(keep.genes)
 
 
-mcCores <- 25
+mcCores <- 20
 
 
 
@@ -160,7 +160,7 @@ for(chr in 5){
 ### check how many snps are called significant 
 table(dgeSQTL$table$FDR < 0.05, useNA = "always")
 
-table(dgeSQTL$table$LR < 0.05, useNA = "always")
+table(dgeSQTL$table$LR < 0, useNA = "always")
 
 ### check how many genes are called significant 
 length(unique((dgeSQTL$table$gene_id)))
