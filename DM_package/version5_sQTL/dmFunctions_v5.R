@@ -197,12 +197,14 @@ dmScoreFunGkm1 <- function(pi, gamma0, y){
   k <- nrow(y)
   N <- ncol(y)
   ykm1 <- y[-k, , drop=FALSE]
-  yk <- y[k,] # as.numeric(y[k,]) ## problem if only y[k,]
+  yk <- y[k,] 
   pik <- 1-sum(pi)
   
   S <- gamma0 * rowSums( digamma(ykm1 + pi * gamma0) - digamma(pi * gamma0) - (digamma(yk + gamma0 * pik) - digamma(gamma0 * pik)) ) 
   
   ### versions with repCol 
+	# yk <- as.numeric(y[k,]) ## problem if only y[k,]
+	
 #   S <- gamma0 * rowSums( digamma(ykm1 + repCol(pi, N) * gamma0) - digamma(repCol(pi, N) * gamma0) - (digamma(yk + gamma0 * pik) - digamma(gamma0 * pik)) ) 
 #   
 #   S <- gamma0 * rowSums( digamma(ykm1 + repCol(pi, N) * gamma0) - digamma(pi * gamma0) - (digamma(yk + gamma0 * pik) - digamma(gamma0 * pik)) ) 

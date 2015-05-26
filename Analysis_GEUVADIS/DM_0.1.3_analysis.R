@@ -173,6 +173,14 @@ length(unique((dgeSQTL$table$gene_id[dgeSQTL$table$FDR < 0.05])))
 ##########################################################################################
 
 
+out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tol10_constrOptim2/"
+out.dir.plots <- "DM_0_1_3_sQTL_analysis/Plots_Data_DM_0_1_3_TagwiseDisp_gridNone_tol10_constrOptim2/"
+dir.create(out.dir.plots, showWarnings = FALSE, recursive = TRUE)
+
+load(paste0(out.dir,"/dgeSQTL_chr5.RData"))
+
+
+
 out.dir <- "DM_0_1_3_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tolEps/"
 out.dir.plots <- "DM_0_1_3_sQTL_analysis/Plots_Data_DM_0_1_3_TagwiseDisp_gridNone_tolEps/"
 dir.create(out.dir.plots, showWarnings = FALSE, recursive = TRUE)
@@ -347,6 +355,28 @@ sum(res$FDR < 0.05, na.rm = TRUE)
 ### check how many genes are called significant 
 length(unique((res$gene_id)))
 length(unique((res$gene_id[res$FDR < 0.05])))
+
+##########################################################################################
+####### Plot number of SNPs per gene
+##########################################################################################
+
+
+
+
+pdf(paste0(out.dir.plots, "/Hist_numberOfSNPsPerGene.pdf"))
+tt <- table(res.all$gene_id)
+
+hist(tt, breaks = 100, col = "darkseagreen2", main = paste0("All ",length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "number of SNPs per gene")
+
+tt <- table(res.all[res.all$FDR < 0.05, "gene_id"])
+
+hist(tt, breaks = 100, col = "darkturquoise", main = paste0( "Significant ",length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "number of SNPs per gene")
+
+dev.off()
+
+
+
+
 
 
 

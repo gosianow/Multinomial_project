@@ -676,7 +676,7 @@ plotLL(LLdiff, plotPath, range = 0)
 ##################################################################################
 ################################# plot score of piH for genes with 3 transcripts
 ##################################################################################
-
+## !!!!!!!!  there was a mistake in dmScoreFunGkm1 because repRow was not used
 
 
 library(plotly)
@@ -701,45 +701,46 @@ calculateSC <- function(dgeDM, piXY, gamma0, mode){
     igroups[[lgroups[gr]]] <- which(group == lgroups[gr])
   }
   
-  SC1 <- matrix(0, nrow(piXY), ngroups)
+  SCx <- matrix(0, nrow(piXY), ngroups)
   colnames(SC1) <- lgroups
-  SC2 <- matrix(0, nrow(piXY), ngroups)
+  SCy <- matrix(0, nrow(piXY), ngroups)
   colnames(SC2) <- lgroups
-  SCnull1 <- rep(0, nrow(piXY))
-  SCnull2 <- rep(0, nrow(piXY))
+  SCnullx <- rep(0, nrow(piXY))
+  SCnully <- rep(0, nrow(piXY))
   
   
   for(i in 1:nrow(piXY)){
-    # i = 1    
+    # i = 29900    
     
     if(sum(piXY[i, ]) >= 1 - sqrt(.Machine$double.eps)){
-      SC1[i, ] <- NA
-      SC2[i, ] <- NA
-      SCnull1[i] <- NA
-      SCnull2[i] <- NA
+      SCx[i, ] <- NA
+      SCy[i, ] <- NA
+      SCnullx[i] <- NA
+      SCnully[i] <- NA
     }else{
       switch(mode, 
              
              constrOptim2 = {
                for(gr in 1:ngroups){                 
                  sc <- dmScoreFunkm1(as.numeric(piXY[i, ]), gamma0, y[, igroups[[gr]], drop = FALSE])    
-                 SC1[i, gr] <- sc[1]
-                 SC2[i, gr] <- sc[2]
+                 SCx[i, gr] <- sc[1]
+                 SCy[i, gr] <- sc[2]
                }             
                sc <- dmScoreFunkm1(as.numeric(piXY[i, ]), gamma0, y)        
-               SCnull1[i] <- sc[1]
-               SCnull2[i] <- sc[2]
+               SCnullx[i] <- sc[1]
+               SCnully[i] <- sc[2]
              },
              
              constrOptim2G = {
-               for(gr in 1:ngroups){                
+               for(gr in 1:ngroups){
+                 # gr = 1
                  sc <- dmScoreFunGkm1(as.numeric(piXY[i, ]), gamma0, y[, igroups[[gr]], drop = FALSE])    
-                 SC1[i, gr] <- sc[1]
-                 SC2[i, gr] <- sc[2]
+                 SCx[i, gr] <- sc[1]
+                 SCy[i, gr] <- sc[2]
                }             
                sc <- dmScoreFunGkm1(as.numeric(piXY[i, ]), gamma0, y)        
-               SCnull1[i] <- sc[1]
-               SCnull2[i] <- sc[2]           
+               SCnullx[i] <- sc[1]
+               SCnully[i] <- sc[2]           
              })
     }
     
@@ -755,9 +756,9 @@ calculateSC <- function(dgeDM, piXY, gamma0, mode){
   
   df.est <- data.frame(x = c(dgeDM$fit[[g]]$piH[1, ], dgeDM$fit.null[[g]]$piH[1, ]), y = c(dgeDM$fit[[g]]$piH[2, ], dgeDM$fit.null[[g]]$piH[2, ]), Condition = factor(c(paste0("X", lgroups), "null"), levels = c(paste0("X", lgroups), "null") ), SC = NA)
   
-  df1 <- data.frame(piXY, SC1, null = SCnull1)  
+  df1 <- data.frame(piXY, SCx, null = SCnullx)  
   df1 <- melt(df1, id.vars = c("x", "y"), variable.name = "Condition", value.name = "SC")
-  df2 <- data.frame(piXY, SC2, null = SCnull2)  
+  df2 <- data.frame(piXY, SCy, null = SCnully)  
   df2 <- melt(df2, id.vars = c("x", "y"), variable.name = "Condition", value.name = "SC")
   
   return(list(df1 = df1, df2 = df2, df.est = df.est, colour = colour, gamma0 = gamma0))
@@ -765,7 +766,7 @@ calculateSC <- function(dgeDM, piXY, gamma0, mode){
 }
 
 
-plotSC <- function(SC, plotPath, range = 1){
+plotSC <- function(SC, plotPath, range = 1, limit = NULL){
   
   df1 <- SC$df1
   df2 <- SC$df2
@@ -783,8 +784,9 @@ plotSC <- function(SC, plotPath, range = 1){
     Condition <- df.est$Condition[i]
     
     df.est.tmp <- df.est[df.est$Condition == Condition,]
-    df1.tmp <- df1[df1$Condition == Condition,]     
-    limit <- max(abs(df1.tmp$SC), na.rm= TRUE)*range
+    df1.tmp <- df1[df1$Condition == Condition,]    
+    if(is.null(limit))
+      limit <- max(abs(df1.tmp$SC), na.rm= TRUE)*range
     
     sc <- ggplot(df1.tmp, aes(x=x, y=y, fill = SC)) + 
       geom_tile() +
@@ -801,6 +803,7 @@ plotSC <- function(SC, plotPath, range = 1){
     print(sc)
 
     df2.tmp <- df2[df2$Condition == Condition,] 
+    if(is.null(limit))
     limit <- max(abs(df2.tmp$SC), na.rm= TRUE)*range
     
     
@@ -867,19 +870,18 @@ gamma0 <- dgeDMList[["constrOptim2"]]$tagwiseDispersion
 
 SC2 <- calculateSC(dgeDMList[["constrOptim2"]], piXY, gamma0, mode = "constrOptim2")
 
-plotPath <- paste0(out.dir.s, "SCOREpiH_", mode = "constrOptim2", "_", modeDisp,"_keep", keep, plotName, ".pdf")
+plotPath <- paste0(out.dir.s, "SCOREpiH_", mode = "constrOptim2", "_", modeDisp,"_keep", keep, plotName, "2.pdf")
 
-plotSC(SC2, plotPath, range = 0.2)
+plotSC(SC2, plotPath, range = 0.003, limit = 20)
 
 
 ### constrOptim2G
 
 SC2G <- calculateSC(dgeDMList[["constrOptim2G"]], piXY, gamma0, mode = "constrOptim2G")
 
-plotPath <- paste0(out.dir.s, "SCOREpiH_", mode = "constrOptim2G", "_", modeDisp,"_keep", keep, plotName, ".pdf")
+plotPath <- paste0(out.dir.s, "SCOREpiH_", mode = "constrOptim2G", "_", modeDisp,"_keep", keep, plotName, "2.pdf")
 
-plotSC(SC2G, plotPath, range = 0.2)
-
+plotSC(SC2G, plotPath, range = 0.003, limit = 20)
 
 
 
@@ -890,9 +892,43 @@ SCdiff[["df2"]][, "SC"] <- SC2G[["df2"]][, "SC"] - SC2[["df2"]][, "SC"]
 SCdiff[["df.est"]][, "SC"] <- NA
 
 
-plotPath <- paste0(out.dir.s, "SCOREdifference", modeDisp,"_keep", keep, plotName, ".pdf")
+plotPath <- paste0(out.dir.s, "SCOREdifference", modeDisp,"_keep", keep, plotName, "2.pdf")
 
-plotSC(SCdiff, plotPath, range = 0.1)
+plotSC(SCdiff, plotPath, range = 0.05)
+
+
+
+
+
+
+
+
+
+sc2x <- SC2[["df1"]]
+sc2gx <- SC2G[["df1"]]
+
+
+sc2x <- SC2[["df1"]][complete.cases(SC2[["df1"]]), ]
+sc2gx <- SC2G[["df1"]][complete.cases(SC2G[["df1"]]), ]
+
+
+
+sc2x <- sc2x[sc2x$Condition == "X0", ]
+sc2gx <- sc2gx[sc2gx$Condition == "X0", ]
+
+
+min(abs(sc2x$SC))
+min(abs(sc2gx$SC))
+
+sc2x[which.min(abs(sc2x$SC)), ]
+
+sc2gx[which.min(abs(sc2gx$SC)), ]
+
+
+
+
+
+
 
 
 
