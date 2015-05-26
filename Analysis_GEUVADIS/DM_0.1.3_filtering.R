@@ -29,13 +29,11 @@ dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 # paths to data used for filtering
 ##########################################################################################
 
-data.dir <- "sQTLseekeR20_analysis/Data/"
+data.dir <- "Data/"
 
 ## Input files: transcript expression, gene location and genotype information
 trans.exp.f = paste0(data.dir, "trExpCount_CEU.tsv")
 gene.bed.f = paste0(data.dir, "genes_noChr.bed")
-genotype.f = paste0(data.dir, "snps_CEU_full.RData")
-
 
 ## Getting the IDs of samples in CEU population
 groups.f <- paste0(data.dir, "sample-groups.tsv")
@@ -156,7 +154,8 @@ tre.df.split <- split(tre.df[, -c(1,2)], f = tre.df$geneId)
 ## for each chromosome find SNPs-genes matches and prepare genotypes and SNPs tables
 
 genotypesList <- mclapply(22:1, function(chr){
-  # chr = 22 
+  # chr = 5
+	 
   cat(chr, fill = TRUE)
 
   ### gene ranges
@@ -164,8 +163,7 @@ genotypesList <- mclapply(22:1, function(chr){
   gnrng <- GenomicRanges::GRanges(gene.bed.tmp$chr, IRanges::IRanges(gene.bed.tmp$start, gene.bed.tmp$end))  
   gnrng  <- GenomicRanges::resize(gnrng, GenomicRanges::width(gnrng) + 2 * genic.window, fix="center")
   
-  genotype <- read.table(paste0(data.dir, "snps_CEU_chr", chr ,".tsv.sort.tsv"), header = FALSE, sep = "\t", as.is = TRUE)
-  colnames(genotype) <- read.table(paste0(data.dir, "snps_CEU_head.tsv"), header = FALSE, sep = "\t", as.is = TRUE)
+  genotype <- read.table(paste0(data.dir, "snps_CEU_chr", chr ,".tsv"), header = FALSE, sep = "\t", as.is = TRUE)
   rownames(genotype) <- genotype$snpId
   
   ### snps positions 
@@ -229,7 +227,7 @@ return(genotype.gene.full)
 
 gc()
 
-write.table(genotype.keep, paste0(out.dir, "genotypes_chr",chr,".txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+# write.table(genotype.keep, paste0(out.dir, "genotypes_chr",chr,".txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
 
   return(genotype.keep)
@@ -247,7 +245,7 @@ genotypes$geneId <- as.character(genotypes$geneId)
 genotypes$snpId <- as.character(genotypes$snpId)
 
 
-write.table(genotypes, paste0(out.dir, "genotypes.txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+# write.table(genotypes, paste0(out.dir, "genotypes.txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 save(genotypes, file = paste0(out.dir, "genotypes.RData"))
 
 
