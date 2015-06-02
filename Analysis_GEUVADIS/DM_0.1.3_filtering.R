@@ -21,7 +21,7 @@ source("/home/gosia/R/R_Multinomial_project/DM_package_devel/0_my_printHead.R")
 
 library(edgeR)
 
-out.dir <- "DM_0_1_3_Data"
+out.dir <- "DM_0_1_3_Data/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 
@@ -33,10 +33,10 @@ data.dir <- "Data/"
 
 ## Input files: transcript expression, gene location and genotype information
 trans.exp.f = paste0(data.dir, "trExpCount_CEU.tsv")
-gene.bed.f = paste0(data.dir, "genes_noChr.bed")
+gene.bed.f = paste0(data.dir, "Annotation/genes_noChr.bed")
 
 ## Getting the IDs of samples in CEU population
-groups.f <- paste0(data.dir, "sample-groups.tsv")
+groups.f <- paste0(data.dir, "Metadata/sample-groups.tsv")
 groups = read.table(groups.f, header=TRUE, as.is=TRUE)
 groups = subset(groups,group=="CEU")
 
@@ -124,7 +124,13 @@ write.table(tre.df, paste0(out.dir, "tre.df.txt"), quote = FALSE, sep = "\t", ro
 
 save(tre.df, file = paste0(out.dir, "tre.df.RData"))
 
+load(paste0(out.dir, "tre.df.RData"))
 
+
+pdf(paste0(out.dir, "/Hist_numberOfTranscripts.pdf"))
+tt <- table(tre.df$geneId)
+hist(tt, breaks = max(tt), col = "orangered", main = paste0(length(tt), " genes \n ", sum(tt) , " transcripts "), xlab = "number of transcripts per gene")
+dev.off()
 
 
 ##########################################################################################
@@ -154,7 +160,7 @@ tre.df.split <- split(tre.df[, -c(1,2)], f = tre.df$geneId)
 ## for each chromosome find SNPs-genes matches and prepare genotypes and SNPs tables
 
 genotypesList <- mclapply(22:1, function(chr){
-  # chr = 5
+  # chr = 1
 	 
   cat(chr, fill = TRUE)
 
@@ -163,9 +169,9 @@ genotypesList <- mclapply(22:1, function(chr){
   gnrng <- GenomicRanges::GRanges(gene.bed.tmp$chr, IRanges::IRanges(gene.bed.tmp$start, gene.bed.tmp$end))  
   gnrng  <- GenomicRanges::resize(gnrng, GenomicRanges::width(gnrng) + 2 * genic.window, fix="center")
   
-  genotype <- read.table(paste0(data.dir, "snps_CEU_chr", chr ,".tsv"), header = FALSE, sep = "\t", as.is = TRUE)
+  genotype <- read.table(paste0(data.dir, "Genotypes/snps_CEU_chr", chr ,".tsv"), header = TRUE, sep = "\t", as.is = TRUE)
   rownames(genotype) <- genotype$snpId
-  
+
   ### snps positions 
   gtrng <- GenomicRanges::GRanges(genotype$chr, IRanges::IRanges(genotype$start, genotype$end)) 
   
@@ -249,10 +255,14 @@ genotypes$snpId <- as.character(genotypes$snpId)
 save(genotypes, file = paste0(out.dir, "genotypes.RData"))
 
 
-length(unique(genotypes$geneId))
-dim(genotypes)
-dim(unique(genotypes[, c("geneId", "snpId")]))
-dim(unique(genotypes))
+load(paste0(out.dir, "/genotypes.RData"))
+
+tt <- table(genotypes$geneId)
+pdf(paste0(out.dir, "/Hist_numberOfSnps.pdf"))
+hist(tt, breaks = 100, col = "chartreuse2", main = paste0(length(tt), " genes \n ", sum(tt) , " snps "), xlab = "number of snps per gene")
+dev.off()
+
+
 
 
 

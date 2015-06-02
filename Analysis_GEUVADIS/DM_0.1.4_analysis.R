@@ -3,6 +3,8 @@
 # Created 26 May 2015
 # Analyse data from DM_0.1.3_filtering (only chr5) with DM_0.1.4
 
+# Updated 28 May 2015
+# Run on DM_0_1_2 data but the clean (NA for variants with less than 5 replicates) genotypes
 
 ##############################################################################################################
 
@@ -41,6 +43,21 @@ load(paste0("DM_0_1_3_Data/dgeSQTL_chr5.RData"))
 
 
 
+######### run on chr5 DM_0_1_2 data / clean version
+out.dir <- "DM_0_1_4_sQTL_analysis/Results_Data_DM_0_1_2_clean_TagwiseDisp_gridNone_tol12_constrOptim2G/"
+dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
+
+load(paste0("DM_0_1_2_Data/dgeSQTL_clean.RData"))
+
+
+
+
+
+
+
+
+
+
 
 dgeSQTL.org <- dgeSQTL
 
@@ -54,11 +71,11 @@ keep.genes <- merge(keep.genes, unique(dgeSQTL.org$SNPs[, c("gene_id", "chr")]),
 dim(keep.genes)
 
 
-mcCores <- 20
+mcCores <- 10
 
 
 
-for(chr in 5){
+for(chr in 1:22){
   # chr = 5
   
   dgeSQTL <- dgeSQTL.org
@@ -77,12 +94,12 @@ for(chr in 5){
   ######### commonDispersion
   cat(paste0("chr", chr," estimate common dispersion \n"))
   
-#   dgeSQTL <- dmSQTLEstimateCommonDisp(dgeSQTL, adjust = TRUE, subset = round(nrow(dgeSQTL$genotypes)/170) , mode = "constrOptim2G", epsilon = 1e-05, maxIte = 1000, interval = c(0, 1e+2), tol = 1e-02, mcCores=mcCores, verbose=FALSE)
+   # dgeSQTL <- dmSQTLEstimateCommonDisp(dgeSQTL, adjust = TRUE, subset = round(nrow(dgeSQTL$genotypes)/170) , mode = "constrOptim2G", epsilon = 1e-05, maxIte = 1000, interval = c(0, 1e+2), tol = 1e-02, mcCores=mcCores, verbose=FALSE)
 # 
-#   write.table(dgeSQTL$commonDispersion, paste0(out.dir, "commonDispersion_chr", chr, ".txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
+   # write.table(dgeSQTL$commonDispersion, paste0(out.dir, "commonDispersion_chr", chr, ".txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
 
-  dgeSQTL$commonDispersion <- as.numeric(read.table(paste0(out.dir, "commonDispersion_chr", chr, ".txt" )))
-  
+  # dgeSQTL$commonDispersion <- as.numeric(read.table(paste0(out.dir, "commonDispersion_chr", chr, ".txt" )))
+  dgeSQTL$commonDispersion <- 4
   
   ######### tagwiseDispersion
   cat(paste0("chr", chr," estimate tagwise dispersion \n"))
@@ -137,12 +154,9 @@ length(unique((dgeSQTL$table$gene_id[dgeSQTL$table$FDR < 0.05])))
 ##########################################################################################
 
 
-out.dir <- "DM_0_1_4_sQTL_analysis/Results_Data_DM_0_1_3_TagwiseDisp_gridNone_tol12_constrOptim2G/"
-out.dir.plots <- "DM_0_1_4_sQTL_analysis/Plots_Data_DM_0_1_3_TagwiseDisp_gridNone_tol12_constrOptim2G/"
+out.dir <- "DM_0_1_4_sQTL_analysis/Results_Data_DM_0_1_2_clean_TagwiseDisp_gridNone_tol12_constrOptim2G/"
+out.dir.plots <- "DM_0_1_4_sQTL_analysis/Plots_Data_DM_0_1_2_clean_TagwiseDisp_gridNone_tol12_constrOptim2G/"
 dir.create(out.dir.plots, showWarnings = FALSE, recursive = TRUE)
-
-load(paste0(out.dir,"/dgeSQTL_chr5.RData"))
-
 
 
 
@@ -157,11 +171,13 @@ load(paste0(out.dir,"/dgeSQTL_chr5.RData"))
 
 ##### merge tables with results
 
-res <- lapply(5, function(chr){ 
-  # chr=5
+res <- lapply(1:22, function(chr){ 
+  # chr = 1
   results <- read.table(paste0(out.dir, "results_chr", chr, ".txt" ), header = TRUE, as.is = TRUE)
   
   results <- results[complete.cases(results), ]
+  
+  results[!complete.cases(results), ]
   
   pdf(paste0(out.dir, "hist_pvalues_chr",chr,".pdf"))
   
@@ -189,9 +205,6 @@ res.table$SNPgene <- paste0(res.table$SNP_id, "-", res.table$gene_id)
 
 write.table(res, paste0(out.dir, "CEU_results_all.txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
-write.table(res[res$FDR < 0.05 & !is.na(res$FDR), ], paste0(out.dir, "CEU_results_FDR05.txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
-
-
 
 
 #### check how many genes have LR < 0 
@@ -203,7 +216,7 @@ table(res$LR < 0, useNA = "always")
 
 ##### merge tagwise dispersion 
 
-res <- lapply(5, function(chr){ results <- read.table(paste0(out.dir, "tagwiseDispersion_chr", chr, ".txt" ), header = TRUE, as.is = TRUE)})
+res <- lapply(1:22, function(chr){ results <- read.table(paste0(out.dir, "tagwiseDispersion_chr", chr, ".txt" ), header = TRUE, as.is = TRUE)})
 
 res <- do.call(rbind, res)
 
@@ -214,16 +227,54 @@ write.table(res, paste0(out.dir, "tagwiseDispersion.txt" ), quote = FALSE, sep =
 gene <- "ENSG00000169045.13"
 snp <- "snp_5_179056159"
 
-res[res$SNP_id == paste(snp, gene, sep="-"), ] # 0.1092517 - this is the values estimated with DM_0.1.2.
+res[res$SNP_id == paste(snp, gene, sep="-"), ] # 0.1092517 - this is the value estimated with DM_0.1.2.
 
+
+
+
+
+########## check the uncomplete cases with NA
+chr = 1
+
+load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
+results <- read.table(paste0(out.dir, "results_chr", chr, ".txt" ), header = TRUE, as.is = TRUE)
+
+results[!complete.cases(results),]
+
+nr <- results[!complete.cases(results),]
+
+dim(nr)
+
+gene <- "ENSG00000162779.14"
+snp <- "snp_1_179407523"
+
+
+table(dgeSQTL.org$genotypes[dgeSQTL.org$SNPs[, "gene_id"] == gene & dgeSQTL.org$SNPs[, "SNP_id"] == snp, ])
+
+
+dgeSQTL$fit[[snp]]
+
+nf <- names(dgeSQTL$fit)
+
+table(duplicated(nf))
+
+snp %in% nf[duplicated(nf)]
+
+table(nr$SNP_id %in% nf[duplicated(nf)])
+
+table(is.na(dgeSQTL$tagwiseDispersion))
+
+dgeSQTL$tagwiseDispersion[paste0(nr$SNP_id, "-", nr$gene_id)]
+
+dgeSQTL$counts[[gene]] ### plenty of NAs
 
 
 
 
 ##### merge mean gene expression & nr of transcripts
 
-res <- lapply(5, function(chr){ 
-  # chr = 5
+res <- lapply(1:22, function(chr){ 
+  # chr = 1
   
   cat(paste0("chr", chr," \n"))
   
@@ -236,13 +287,13 @@ res <- lapply(5, function(chr){
   tagwiseDispersion <- data.frame(SNPgene = names(dgeSQTL$tagwiseDispersion), tagwiseDispersion = dgeSQTL$tagwiseDispersion, stringsAsFactors = FALSE)
   meanExpr <- merge(meanExpr, tagwiseDispersion, by = "SNPgene", sort = FALSE)
   
-  nrTrans <- t(sapply(dgeSQTL$counts, dim, USE.NAMES = TRUE))  
-  nrTrans <- data.frame(gene_id = rownames(nrTrans), nrTrans = nrTrans[, 1], stringsAsFactors = FALSE, row.names = NULL )  
-  meanExpr <- merge(meanExpr, nrTrans, by = "gene_id", all.x = TRUE, sort = FALSE)
-  
-  minSampSize <- apply(dgeSQTL$genotypes, 1, function(gt){ min(table(gt)) })
-  minSampSize <- data.frame(SNPgene = paste0(dgeSQTL$SNPs$SNP_id, "-", dgeSQTL$SNPs$gene_id) , minSampSize = minSampSize, stringsAsFactors = FALSE)             
-  meanExpr <- merge(meanExpr, minSampSize, by = "SNPgene", sort = FALSE)
+#   nrTrans <- t(sapply(dgeSQTL$counts, dim, USE.NAMES = TRUE))  
+#   nrTrans <- data.frame(gene_id = rownames(nrTrans), nrTrans = nrTrans[, 1], stringsAsFactors = FALSE, row.names = NULL )  
+#   meanExpr <- merge(meanExpr, nrTrans, by = "gene_id", all.x = TRUE, sort = FALSE)
+#   
+#   minSampSize <- apply(dgeSQTL$genotypes, 1, function(gt){ min(table(gt)) })
+#   minSampSize <- data.frame(SNPgene = paste0(dgeSQTL$SNPs$SNP_id, "-", dgeSQTL$SNPs$gene_id) , minSampSize = minSampSize, stringsAsFactors = FALSE)             
+#   meanExpr <- merge(meanExpr, minSampSize, by = "SNPgene", sort = FALSE)
   
   return(meanExpr)
   
@@ -258,29 +309,68 @@ write.table(res, paste0(out.dir, "meanExpr.txt" ), quote = FALSE, sep = "\t", ro
 
 
 #### merge res.table and res.info
-res.all <- merge(res.table, res.info[, c("SNPgene", "meanExpr", "tagwiseDispersion", "nrTrans", "minSampSize")], by = "SNPgene", all.x = TRUE, sort = FALSE)
+# res.all <- merge(res.table, res.info[, c("SNPgene", "meanExpr", "tagwiseDispersion", "nrTrans", "minSampSize")], by = "SNPgene", all.x = TRUE, sort = FALSE)
+
+res.all <- merge(res.table, res.info[, c("SNPgene", "meanExpr", "tagwiseDispersion")], by = "SNPgene", all.x = TRUE, sort = FALSE)
 
 write.table(res.all, paste0(out.dir, "CEU_results_all_info.txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
 
+##########################################################################################
+# Plot dispersion vs mean expression 
+##########################################################################################
+
+
+res <- mclapply(1:22, function(chr){ 
+  # chr = 22
+  
+  cat(paste0("chr", chr," \n"))
+  
+  load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
+  
+  m <- match(dgeSQTL$SNPs$gene_id, names(dgeSQTL$meanExpr))
+  m.df <- match(names(dgeSQTL$tagwiseDispersion), paste0(dgeSQTL$table$SNP_id, "-",dgeSQTL$table$gene_id) )
+  
+  df <- data.frame(meanExpr = log10(dgeSQTL$meanExpr[m]+1), tagwiseDispersion = log10(dgeSQTL$tagwiseDispersion), df = dgeSQTL$table[m.df, "df"])
+  
+  pdf(paste0(out.dir, "DispVSmeanExpression_chr", chr, ".pdf" ), 7, 5)
+  
+  myPalette <- colorRampPalette(brewer.pal(11, "PiYG"))
+  ggp2 <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion, colour = df )) +
+    theme_bw() +
+    geom_point(size = 2) +
+    xlab("Log10 mean expression") +
+    ylab("Log10 tagwise dispersion") +
+    geom_hline(aes(yintercept=log10(dgeSQTL$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)+
+    theme(axis.text=element_text(size=16), axis.title=element_text(size=18,face="bold"), legend.title = element_text(size=16, face="bold"), legend.text = element_text(size = 14)) +
+    scale_colour_gradient(limits=c(1, 30), low = "blue", high="red", name = "df", na.value = "red")
+  print(ggp2)
+  
+  dev.off()
+  
+  gc()
+  
+  return(NULL)
+  
+}, mc.cores = 5)
 
 
 
-### SNPs with negative LR and 2 transcripts
-table(res.all$LR < 0, useNA = "always")
 
-res.all[res.all$LR < 0 & res.all$nrTrans == 2, ]
-
-dim(res.all[res.all$LR < 0 & res.all$nrTrans == 3, ])
+##########################################################################################
+####### Plot p-values distribution
+##########################################################################################
 
 
-### check how many snps are called significant 
-dim(res)
-sum(res$FDR < 0.05, na.rm = TRUE)
 
-### check how many genes are called significant 
-length(unique((res$gene_id)))
-length(unique((res$gene_id[res$FDR < 0.05])))
+pdf(paste0(out.dir, "hist_pvalues.pdf"))
+
+hist(res.table[, "PValue"], col = "orange", breaks = 100, cex.lab=1.5, cex.axis = 1.5, xlab="P-values", main = "")
+
+dev.off()
+
+
+
 
 ##########################################################################################
 ####### Plot number of SNPs per gene
@@ -292,74 +382,71 @@ length(unique((res$gene_id[res$FDR < 0.05])))
 pdf(paste0(out.dir.plots, "/Hist_numberOfSNPsPerGene.pdf"))
 tt <- table(res.all$gene_id)
 
-hist(tt, breaks = 100, col = "darkseagreen2", main = paste0("All ",length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "number of SNPs per gene")
+hist(tt, breaks = 100, col = "darkseagreen2", main = paste0("All ",length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "Number of SNPs per gene")
 
 tt <- table(res.all[res.all$FDR < 0.05, "gene_id"])
 
-hist(tt, breaks = 100, col = "darkturquoise", main = paste0( "Significant ",length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "number of SNPs per gene")
+hist(tt, breaks = 100, col = "darkturquoise", main = paste0( "Significant ",length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "Number of SNPs per gene")
 
+dev.off()
+
+
+##########################################################################################
+####### Check which gene has the most of the significant snps
+##########################################################################################
+
+tt <- table(res.all$gene_id)
+ttSign <- table(res.all[res.all$FDR < 0.05, "gene_id"])
+
+ttSign <- sort(ttSign, decreasing = TRUE)
+
+topNr <- length(ttSign)
+
+df <- data.frame(gene_id = names(ttSign[1:topNr]), NumberSignSNPs = ttSign[1:topNr], NumberAllSNPs = tt[names(ttSign[1:topNr])])
+
+df$Percent <- df$NumberSignSNPs / df$NumberAllSNPs
+
+pdf(paste0(out.dir.plots, "/Percent_numberOfSignificantSNPsPerGene.pdf"))
+ggp <- ggplot(df, aes(x = log10(NumberAllSNPs), y = Percent)) + geom_point(alpha = 0.2)
+print(ggp)
+ggp <- ggplot(df, aes(x = log10(NumberAllSNPs), y = log10(NumberSignSNPs))) + 
+  geom_point(alpha = 0.2) + 
+  geom_abline(intercept = 0, slope = 1, colour = "red")
+print(ggp)
 dev.off()
 
 
 
 
+gene <- "ENSG00000196735.6"
+
+snps <- res.all[res.all$gene_id == gene & res.all$FDR < 0.05, "SNP_id"]
+
+chr = 6
+load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
+
+
+
+
+
 
 ##########################################################################################
-# Plot dispersion vs mean expression 
+# check if snps from sQTLseekeR paper are significant 
 ##########################################################################################
 
-
-res <- mclapply(5, function(chr){ 
-  # chr = 22
-  
-  cat(paste0("chr", chr," \n"))
-  
-  load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
-  
-
-  m <- match(dgeSQTL$SNPs$gene_id, names(dgeSQTL$meanExpr))
-   m.df <- match(names(dgeSQTL$tagwiseDispersion), paste0(dgeSQTL$table$SNP_id, "-",dgeSQTL$table$gene_id) )
-  
-  
-  df <- data.frame(meanExpr = log10(dgeSQTL$meanExpr[m]+1), tagwiseDispersion = log10(dgeSQTL$tagwiseDispersion), df = dgeSQTL$table[m.df, "df"])
-  
-
-  table(df$df)
-  sum(is.na(df$tagwiseDispersion))
-  
-  
-  pdf(paste0(out.dir, "DispVSmeanExpression_chr", chr, ".pdf" ), 7, 5)
-  
-#   ggp <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion)) +
-#     theme_bw() +
-#     geom_point(size = 1) +
-#     geom_hline(aes(yintercept=log10(dgeSQTL$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)
-#   print(ggp)
-  
-  #myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
-  myPalette <- colorRampPalette(brewer.pal(11, "PiYG"))
-  ggp2 <- ggplot(df, aes(x = meanExpr, y = tagwiseDispersion, colour = df )) +
-    theme_bw() +
-    geom_point(size = 2) +
-  xlab("Log10 mean expression") +
-  ylab("Log10 tagwise dispersion") +
-    geom_hline(aes(yintercept=log10(dgeSQTL$commonDispersion)), colour = "deeppink", linetype="dashed", size = 1)+
-    # theme(legend.position="none")+
-  theme(axis.text=element_text(size=16), axis.title=element_text(size=18,face="bold"), legend.title = element_text(size=16, face="bold"), legend.text = element_text(size = 14)) +
-    #scale_colour_gradientn(colours = myPalette(100), limits=c(1, 15), name = "df")
-    scale_colour_gradient(limits=c(1, 30), low = "blue", high="red", name = "df", na.value = "red")
-  print(ggp2)
-  
-  dev.off()
-  
-gc()
-
-  return(NULL)
-  
-}, mc.cores = 3)
+####### check the significans of snps from sQTLseekeR paper
 
 
+snp <- "snp_19_41937095"
+gene <- "ENSG00000105341.11"
 
+res.all[res.all$SNP_id == snp & res.all$gene_id == gene, ]
+
+
+snp <- "snp_5_96244549"
+gene <- "ENSG00000164308.12"
+
+res.all[res.all$SNP_id == snp & res.all$gene_id == gene, ]
 
 
 
@@ -377,9 +464,7 @@ library(RColorBrewer)
 
 plotProportions <- function(dgeSQTL, plot.snps, plotPath){
   
-  
   pdf(plotPath, width = 12, height = 7)
-  
   
   for(i in 1:nrow(plot.snps)){
     # i = 1
@@ -389,14 +474,12 @@ plotProportions <- function(dgeSQTL, plot.snps, plotPath){
     snp <- as.character(plot.snps[i, 2])
     snpgene <- paste0(snp, "-", gene)
     
-    
     index <- which(dgeSQTL$SNPs$SNP_id == snp & dgeSQTL$SNPs$gene_id == gene)
     
     Condition <- factor(dgeSQTL$genotypes[index, ])
     expr <- dgeSQTL$counts[[gene]]
     
     nas <- is.na(Condition) | is.na(expr[1, ])
-    
     
     Condition <- Condition[!nas]
     Condition.counts <- table(Condition)
@@ -426,40 +509,40 @@ plotProportions <- function(dgeSQTL, plot.snps, plotPath){
     prop.est.m$ete_id <- factor(prop.est.m$ete_id, levels = order.tr)
     prop.est.m$Condition <- factor(prop.est.m$Condition)
     
-    
-    
     index.table <- which(dgeSQTL$table$SNP_id == snp & dgeSQTL$table$gene_id == gene)
     
-    main <- paste0(gene, " - ", snp, "\n meanExpression = ", round(dgeSQTL$meanExpr[gene]), " / TagwiseDispersion = ", round(dgeSQTL$tagwiseDispersion[snpgene], 2), "\n LR = ", round(dgeSQTL$table[index.table, "LR"], 4) , " / PValue = ", sprintf("%.02e", dgeSQTL$table[index.table, "PValue"]))
+    main <- paste0(gene, " - ", snp, "\n meanExpression = ", round(dgeSQTL$meanExpr[gene]), " / TagwiseDispersion = ", round(dgeSQTL$tagwiseDispersion[snpgene], 2), "\n LR = ", round(dgeSQTL$table[index.table, "LR"], 4) , " / PValue = ", sprintf("%.02e", dgeSQTL$table[index.table, "PValue"]), " / FDR = ", sprintf("%.02e", dgeSQTL$table[index.table, "FDR"]))
     
     
     ### box plots with points
     ggb <- ggplot(prop.smp.m, aes(x = ete_id, y = Proportions)) +
       theme_bw() + 
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5), axis.text=element_text(size=12), axis.title=element_text(size=12, face="bold"), legend.position="none", plot.title = element_text(size=10)) +
+      # theme(axis.text.x = element_text(angle = 90, vjust = 0.5), axis.text=element_text(size=12), axis.title=element_text(size=12, face="bold"), legend.position="none", plot.title = element_text(size=10)) +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5), axis.text=element_text(size=12), axis.title=element_text(size=12, face="bold"), plot.title = element_text(size=10)) +
       ggtitle(main) +     
-      geom_jitter(aes(fill = Condition, colour = factor(Condition)), position = position_jitterdodge(dodge.width = 0.75), alpha = 0.5) +
+      geom_jitter(aes(fill = Condition, colour = Condition), position = position_jitterdodge(dodge.width = 0.75), alpha = 0.5, show_guide = FALSE) +
       geom_boxplot(aes(colour = Condition), fill = "white", outlier.size = NA, alpha = 0) + 
-      geom_point(data = prop.est.m, aes(x = ete_id, y = Proportions, fill = Condition), position = position_jitterdodge(jitter.width = 0, jitter.height = 0), size = 2, shape = 19, colour = "black") +
-      geom_point(data = prop.est.null, aes(x = ete_id, y = Proportions), size = 3, shape = 18, colour = "orange") +
-      coord_cartesian(ylim = c(-0.1, 1.1)) 
-    
+      geom_point(data = prop.est.m, aes(x = ete_id, y = Proportions, fill = Condition), position = position_jitterdodge(jitter.width = 0, jitter.height = 0), size = 3, shape = 23, show_guide = FALSE) +
+      geom_point(data = prop.est.null, aes(x = ete_id, y = Proportions), size = 3, shape = 23, fill = "orange") +
+      coord_cartesian(ylim = c(-0.1, 1.1)) +
+    scale_x_discrete(name="Transcripts") +
+      scale_colour_discrete(name = "Variants")
     
     print(ggb)
     
-    #     ### box plots per condition
-    #     ggb <- ggplot(prop.smp.m, aes(x = Condition, y = Proportions)) +
-    #       theme_bw() + 
-    #       theme(axis.text.x = element_text(angle = 0, vjust = 0.5), axis.text=element_text(size=12), axis.title=element_text(size=12, face="bold"), plot.title = element_text(size=10)) +
-    #       ggtitle(main) +     
-    #       scale_x_discrete(labels = paste0(names(Condition.counts), " (",Condition.counts, ")" ), name="Variant") +
-    #       geom_boxplot(aes(fill = ete_id), width = 1) + 
-    #       # geom_point(data = prop.est.m, aes(x = Condition, y = Proportions, fill = ete_id), position = position_jitterdodge(jitter.width = 0, jitter.height = 0), size = 2, shape = 19, colour = "red") +
-    #       coord_cartesian(ylim = c(-0.1, 1.1)) +
-    #       geom_vline(xintercept=c(1.5,2.5), color="white")
-    #     
-    #     
-    #     print(ggb)
+    ### box plots per condition
+    ggb <- ggplot(prop.smp.m, aes(x = Condition, y = Proportions)) +
+      theme(axis.text.x = element_text(angle = 0, vjust = 0.5), axis.text=element_text(size=12), axis.title=element_text(size=12, face="bold"), plot.title = element_text(size=10), panel.grid.major=element_blank()) +
+      geom_vline(xintercept=c(1.5,2.5),color="white") +
+      ggtitle(main) +     
+      scale_x_discrete(labels = paste0( "Variant ", names(Condition.counts), " (",Condition.counts, ")" ), name="") +
+      geom_boxplot(aes(fill = ete_id), width = 1) + 
+      geom_point(data = prop.est.m, aes(x = Condition, y = Proportions, fill = ete_id), position = position_jitterdodge(jitter.width = 0, jitter.height = 0), size = 2, shape = 23, colour = "black") +
+      coord_cartesian(ylim = c(-0.1, 1.1)) +
+      geom_vline(xintercept=c(1.5,2.5), color="white")+
+      scale_fill_discrete(name = "Transcripts")
+    
+    print(ggb)
     
     
   }
@@ -476,6 +559,8 @@ plotProportions <- function(dgeSQTL, plot.snps, plotPath){
 gene <- "ENSG00000169045.13"
 snp <- "snp_5_179056159"
 
+chr = 5
+load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
 
 plot.snps <- data.frame(gene_id = gene, SNP_id = snp, stringsAsFactors = FALSE)
 
@@ -486,23 +571,56 @@ plotProportions(dgeSQTL, plot.snps, plotPath)
 
 
 
+#### SNPs from sQTLseekeR paper
+
+snp <- "snp_5_96244549"
+gene <- "ENSG00000164308.12"
 
 
-### most significant SNPs
+plot.snps <- data.frame(gene_id = gene, SNP_id = snp, stringsAsFactors = FALSE)
 
-plot.snps <- res.all[1:6, c("gene_id", "SNP_id")]
+plotPath <- paste0(out.dir.plots, "Proportions_SNPs_from_Seeker_paper",snp,".pdf")
 
-
-plotPath <- paste0(out.dir.plots, "Proportions_most_significant.pdf")
 
 plotProportions(dgeSQTL, plot.snps, plotPath)
 
 
 
+snp <- "snp_19_41937095"
+gene <- "ENSG00000105341.11"
+
+chr = 19
+load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
+
+
+plot.snps <- data.frame(gene_id = gene, SNP_id = snp, stringsAsFactors = FALSE)
+
+plotPath <- paste0(out.dir.plots, "Proportions_SNPs_from_Seeker_paper",snp,".pdf")
+
+
+plotProportions(dgeSQTL, plot.snps, plotPath)
+
+
+
+#### most significant SNPs that belong to a gene with highest number of siginificant SNPs
+
+chr = 6
+load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
+
+plot.snps <- data.frame(gene_id = gene, SNP_id = snps, stringsAsFactors = FALSE)
+
+plotPath <- paste0(out.dir.plots, "Proportions_Gene_highest_nr_sign_SNPs_head.pdf")
+
+
+plotProportions(dgeSQTL, head(plot.snps, 10), plotPath)
 
 
 
 
+plotPath <- paste0(out.dir.plots, "Proportions_Gene_highest_nr_sign_SNPs_tail.pdf")
+
+
+plotProportions(dgeSQTL, tail(plot.snps, 10), plotPath)
 
 
 

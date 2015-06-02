@@ -87,6 +87,11 @@ dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 data.dir <- "sQTLseekeR20_analysis/Data/"
 
+out.plot <- "sQTLseekeR20_analysis/Plots/"
+dir.create(out.plot, showWarnings = FALSE, recursive = TRUE)
+
+
+
 ## Input files: transcript expression, gene location and genotype information
 trans.exp.f = paste0(data.dir, "trExpRPKM.tsv")
 gene.bed.f = paste0(data.dir, "genes_noChr.bed")
@@ -117,6 +122,11 @@ genotype.indexed.f <- paste0(data.dir, "snps_CEU_full.tsv.bgz")
 # write.table(tre.df, paste0(data.dir, "trExpRPKM_CEU_Seeker.tsv"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
 tre.df <- tre.df.org <- read.table(paste0(data.dir, "trExpRPKM_CEU_Seeker.tsv"), header = TRUE, as.is=TRUE)
+
+pdf(paste0(out.plot, "/Hist_numberOfTranscripts.pdf"))
+tt <- table(tre.df$geneId)
+hist(tt, breaks = max(tt), col = "orangered", main = paste0(length(tt), " genes \n ", sum(tt) , " transcripts "), xlab = "Number of transcripts per gene")
+dev.off()
 
 
 ## 3) Test gene/SNP associations
@@ -157,8 +167,6 @@ res.df <- do.call(rbind, res.df.list)
 
 write.table(res.df, paste0(out.dir, "CEU_results_all.txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
-dim(res.df)
-dim(unique(res.df[,c("geneId", "snpId")]))
 
 ## 4) Get significant sQTLs
 sqtls.df = sqtls(res.df, FDR=.05, out.pdf=paste0(out.dir, "CEU_results_FDR05.pdf"))
@@ -168,8 +176,45 @@ write.table(sqtls.df, paste0(out.dir, "CEU_results_FDR05.txt"), quote = FALSE, s
 
 
 
+##########################################################################################
+###### plot p-values distribution and number of SNPs per gene
+##########################################################################################
 
 
+
+
+res.df <- read.table(paste0(out.dir, "CEU_results_all.txt"), header = TRUE, as.is = TRUE, sep = "\t")
+
+sqtls.df <- read.table(paste0(out.dir, "CEU_results_FDR05.txt"), header = TRUE, as.is = TRUE, sep = "\t")
+
+##########################################################################################
+####### Plot p-values distribution
+##########################################################################################
+
+pvs <- res.df[, "pv"]
+
+pdf(paste0(out.plot, "hist_pvalues.pdf"))
+
+hist(pvs, col = "blue", breaks = 100, cex.lab=1.5, cex.axis = 1.5, xlab="P-values", main = "")
+
+dev.off()
+
+
+##########################################################################################
+####### Plot number of SNPs per gene
+##########################################################################################
+
+
+tt <- table(res.df$geneId)
+ttSign <- table(sqtls.df$geneId)
+
+pdf(paste0(out.plot, "/Hist_numberOfSNPsPerGene.pdf"))
+
+hist(tt, breaks = 100, col = "darkseagreen2", main = paste0("All ",length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "Number of SNPs per gene")
+
+hist(ttSign, breaks = 100, col = "darkturquoise", main = paste0( "Significant ",length(ttSign), " genes \n ", sum(ttSign) , " SNPs "), xlab = "Number of SNPs per gene")
+
+dev.off()
 
 
 

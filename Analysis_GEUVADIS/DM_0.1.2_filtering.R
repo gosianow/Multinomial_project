@@ -3,10 +3,12 @@
 # Created 14 Jan 2014
 # Modyfied 15 Jan 2014
 
-# Perform filtering similar to the one in sQTLseekeR analysis of GEUVADIS
-# Use sQTLseeker functions 
+# Perform filtering similar to the one in sQTLseekeR analysis of GEUVADIS based on  sQTLseeker results
 
 # Create dgeSQTL object 
+
+# Update 28 May 2015 
+# Remove the genotypes with less than 5 replicates
 
 ##############################################################################################################
 
@@ -19,12 +21,12 @@ library(DM)
 library(limma)
 source("/home/gosia/R/R_Multinomial_project/DM_package_devel/0_my_printHead.R")
 
-library(sQTLseekeR)
-sQTLseekeR.files <- list.files("/home/gosia/R/R_Multinomial_project/Analysis_GEUVADIS/sQTLseekeR-master/R/", full.names = TRUE)
-for(i in sQTLseekeR.files)
-source(i)
+# library(sQTLseekeR)
+# sQTLseekeR.files <- list.files("/home/gosia/R/R_Multinomial_project/Analysis_GEUVADIS/sQTLseekeR-master/R/", full.names = TRUE)
+# for(i in sQTLseekeR.files)
+# source(i)
 
-out.dir <- "DM_0.1.2_sQTL_analysis/Data/"
+out.dir <- "DM_0_1_2_Data/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 
@@ -75,8 +77,13 @@ all(is.na(tre.df) == is.na(tre.df.rel))
 
 save(tre.df, file = paste0(out.dir, "tre.df.RData"))
 
+load(paste0(out.dir, "tre.df.RData"))
 
-length(unique(tre.df$geneId))
+pdf(paste0(out.dir, "/Hist_numberOfTranscripts.pdf"))
+tt <- table(tre.df$geneId)
+hist(tt, breaks = max(tt), col = "orangered", main = paste0(length(tt), " genes \n ", sum(tt) , " transcripts "), xlab = "number of transcripts per gene")
+dev.off()
+
 
 
 
@@ -84,7 +91,6 @@ length(unique(tre.df$geneId))
 ######################### SNPs and genotype
 
 ### get the SNP - gene match from seeker results 
-
 res.seeker.all <- read.table("sQTLseekeR20_analysis/Results/CEU_results_all.txt", header = TRUE, as.is = TRUE)
 
 snp2gene <- unique(res.seeker.all[, c("geneId", "snpId")])
@@ -121,7 +127,42 @@ genotypes$snpId <- as.character(genotypes$snpId)
 
 save(genotypes, file = paste0(out.dir, "genotypes_basedOnSQTLseekeRresults.RData"))
 
+##########################################################################################
+# Put NA for the genotypes that have less than 5 replicates
+##########################################################################################
 
+load(paste0(out.dir, "/genotypes_basedOnSQTLseekeRresults.RData"))
+
+geno <- as.matrix(genotypes[, -c(1:5)])
+
+
+
+for(i in 1:nrow(geno)){
+  # i = 85883
+  tab <- table(geno[i, ])
+  
+  if(sum(tab < 5) == 1){
+    # print(tab)
+    variant <- as.numeric(names(which(tab < 5)))
+    geno[i, geno[i, ] == variant ] <- NA
+    cat("Less than 5 replicates in ", i, "\n")
+  }
+  
+  
+}
+
+
+genotypes_clean <- data.frame(genotypes[, c(1:5)], geno)
+
+save(genotypes_clean, file = paste0(out.dir, "/genotypes_clean_basedOnSQTLseekeRresults.RData"))
+
+
+load(paste0(out.dir, "/genotypes_clean_basedOnSQTLseekeRresults.RData"))
+
+tt <- table(genotypes_clean$geneId)
+pdf(paste0(out.dir, "/Hist_numberOfSnps.pdf"))
+hist(tt, breaks = 100, col = "chartreuse2", main = paste0(length(tt), " genes \n ", sum(tt) , " snps "), xlab = "number of snps per gene")
+dev.off()
 
 
 ##########################################################################################
@@ -129,12 +170,28 @@ save(genotypes, file = paste0(out.dir, "genotypes_basedOnSQTLseekeRresults.RData
 ##########################################################################################
 
 load(paste0(out.dir, "genotypes_basedOnSQTLseekeRresults.RData"))
-load(paste0(out.dir, "tre.df.RData"))
+
+### load clean genotypes
+
+load(paste0(out.dir, "/genotypes_clean_basedOnSQTLseekeRresults.RData"))
+genotypes <- genotypes_clean
+
+### load transcript expression in RPKM
+load(paste0(out.dir, "/tre.df.RData"))
+
+
+
+
+
+
+
+
+
 
 
 library(edgeR)
 
-dgeSQTL <- DGEList(counts = tre.df[, -c(1, 2)], genes = tre.df[, c(1, 2)])
+dgeSQTL <- DGEList(counts = as.matrix(tre.df[, -c(1, 2)]), genes = tre.df[, c(1, 2)])
 rownames(dgeSQTL$counts) <- tre.df[,"trId"]
 
 dgeSQTL$counts <- round(dgeSQTL$counts * 100) ### RPKM -> counts
@@ -146,6 +203,7 @@ dgeSQTL$genotypes <- as.matrix(genotypes[, -c(1:5)])
 dgeSQTL$SNPs <- genotypes[, c("snpId", "geneId", "chr", "start")]
 colnames(dgeSQTL$SNPs)[1:2] <- c("SNP_id", "gene_id")
 
+### check
 all(colnames(dgeSQTL$counts) == colnames(dgeSQTL$genotypes))
 
 
@@ -153,7 +211,7 @@ dgeSQTL$counts <- split(data.frame(dgeSQTL$counts), factor(dgeSQTL$genes$gene_id
 dgeSQTL$counts <- lapply(dgeSQTL$counts, as.matrix)  ## !!! have to conver into matrix, othewise ERROR
 
 
-save(dgeSQTL, file=paste0(out.dir, "dgeSQTL.RData"))
+save(dgeSQTL, file=paste0(out.dir, "/dgeSQTL_clean.RData"))
 
 
 
