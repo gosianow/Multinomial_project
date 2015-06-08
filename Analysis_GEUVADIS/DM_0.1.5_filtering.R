@@ -2,6 +2,7 @@
 
 # Created 28 May 2015
 
+
 ##############################################################################################################
 
 setwd("/home/Shared/data/seq/GEUVADIS/")
@@ -246,66 +247,84 @@ genotypesList <- mclapply(2:20, function(chr){
 
 
 
+### merge genotypes from all chromosomes
+
+genotypes <- lapply(1:22, function(chr){
+  
+  load(paste0(out.dir, "genotypes_chr",chr ,".RData"))
+  
+  return(genotypes2keep)
+  
+})
+
+genotypes <- unlist(genotypes, recursive = FALSE)
+
+tt <- unlist(lapply(genotypes, nrow))
+
+pdf(paste0(out.dir, "/Hist_numberOfSnps.pdf"))
+hist(tt, breaks = 100, col = "chartreuse2", main = paste0(length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "Number of SNPs per gene")
+dev.off()
+
+
+genotypes_info <- lapply(1:22, function(chr){
+  
+  load(paste0(out.dir, "genotypes_chr",chr ,".RData"))
+  
+  return(genotypes2keep_info)
+  
+})
+
+
+genotypes_info <- plyr::ldply(genotypes_info, identity)
+
+
+save(genotypes, genotypes_info, file = paste0(out.dir, "genotypes.RData"))
 
 
 ##########################################################################################
-# Create dgeSQTL for chromosome 5
+# Create dgeSQTL object
 ##########################################################################################
 
+### load genotypes
+load(paste0(out.dir, "genotypes.RData"))
 
-genotypes <- read.table(paste0(out.dir, "/genotypes_chr5.txt"), header = TRUE, as.is = TRUE)
-# load(paste0(out.dir, "genotypes.RData"))
-head(genotypes)
+### load counts
+load(paste0(out.dir, "counts.RData"))
 
 
-# tre.df <- read.table(paste0(out.dir, "/tre.df.txt"), header = TRUE, as.is = TRUE)
-load(paste0(out.dir, "/tre.df.RData"))
-head(tre.df)
+### keep genes that passed both filters
 
-### keep only the genes from chr5
-tre.df <- tre.df[tre.df$geneId %in% genotypes$geneId, ]
+geneList <- intersect(names(genotypes), names(counts))
+length(geneList)
+
+
+
+
 
 
 library(edgeR)
 
-dgeSQTL <- DGEList(counts = tre.df[, -c(1, 2)], genes = tre.df[, c(1, 2)])
-rownames(dgeSQTL$counts) <- tre.df[,"trId"]
+dgeSQTL <- DGEList()
 
-dgeSQTL$counts <- round(dgeSQTL$counts) ### RPKM -> counts round(dgeSQTL$counts * 100)
+dgeSQTL$counts <- counts[geneList]
+dgeSQTL$genotypes <- genotypes[geneList]
+dgeSQTL$samples <- data.frame(sample_names = colnames(counts[[1]]), stringsAsFactors = FALSE)
 
-dgeSQTL$samples <- colnames(tre.df[, -c(1, 2)])
-colnames(dgeSQTL$genes) <- c("ete_id", "gene_id")
-
-dgeSQTL$genotypes <- as.matrix(genotypes[, -c(1:5)])
-dgeSQTL$SNPs <- genotypes[, c("snpId", "geneId", "chr", "start")]
-colnames(dgeSQTL$SNPs)[1:2] <- c("SNP_id", "gene_id")
-
-all(colnames(dgeSQTL$counts) == colnames(dgeSQTL$genotypes))
+save(dgeSQTL, file=paste0(out.dir, "/dgeSQTL.RData"))
 
 
-dgeSQTL$counts <- split(data.frame(dgeSQTL$counts), factor(dgeSQTL$genes$gene_id, levels = unique(dgeSQTL$genes$gene_id)))
-dgeSQTL$counts <- lapply(dgeSQTL$counts, as.matrix)  ## !!! have to conver into matrix, othewise ERROR
+tt <- unlist(lapply(dgeSQTL$genotypes, nrow))
+
+pdf(paste0(out.dir, "/dgeSQTL_Hist_numberOfSnps.pdf"))
+hist(tt, breaks = 100, col = "chartreuse2", main = paste0(length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "Number of SNPs per gene")
+dev.off()
 
 
-# save(dgeSQTL, file=paste0(out.dir, "/dgeSQTL.RData"))
-save(dgeSQTL, file=paste0(out.dir, "/dgeSQTL_chr5.RData"))
+tt <- unlist(lapply(dgeSQTL$counts, nrow))
 
-
-
-
-
-# ### subset the dgeSQTL object 
-# keep.genes <- intersect(unique(dgeSQTL$genes$gene_id), unique(dgeSQTL$SNPs$gene_id))[1:20]
-# 
-# dgeSQTL$counts <- dgeSQTL$counts[keep.genes]
-# dgeSQTL$genes <- dgeSQTL$genes[dgeSQTL$genes$gene_id %in% names(dgeSQTL$counts), ]
-# dgeSQTL$genotypes <- dgeSQTL$genotypes[dgeSQTL$SNPs$gene_id %in% names(dgeSQTL$counts), ]
-# dgeSQTL$SNPs <- dgeSQTL$SNPs[dgeSQTL$SNPs$gene_id %in% names(dgeSQTL$counts), ]
-# 
-# 
-# dgeSQTL$counts$ENSG00000159733.9
-
-
+pdf(paste0(out.dir, "/dgeSQTL_Hist_numberOfTranscripts.pdf"))
+hist(tt, breaks = max(tt), col = "orangered", main = paste0(length(tt), " genes \n ", sum(tt) , " transcripts "), xlab = "Number of transcripts per gene")
+dev.off()
 
 
 
