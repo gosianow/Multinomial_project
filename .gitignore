@@ -12,7 +12,7 @@
 *.Rproj
 ##
 
-DM_package_devel/*
+DM_package_devel/DM*
 
 ##
 
