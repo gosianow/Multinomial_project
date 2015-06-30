@@ -1,14 +1,13 @@
-#######################################################
-
-# Created 22 May 2015
+######################################################
 # BioC 3.0
 
-# comprare the DM_0.1.4: tagwise Dipsersion and filtering; using htseq counts and bitseq counts
-# For DM: Filtering0, Filtering_DEXSeq
+# Created 11 June 2015 
+# Comparison of Brooks_pasilla data with DM_0.1.4 using htseq counts with DEXSeq
+
+######################################################
 
 
-#######################################################
-
+setwd("/home/Shared/data/seq/brooks_pasilla")
 
 library(DM)
 
@@ -17,58 +16,20 @@ source("/home/gosia/R/R_Multinomial_project/DM_package_devel/0_my_printHead.R")
 
 library(edgeR)
 
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+library(RColorBrewer)
+
+Rfiles <- list.files("/home/gosia/R/R_Multinomial_project/DM_package_devel/DM_0.1.4/R/", full.names=TRUE)
+for(i in Rfiles) source(i)
 
 
+##########################################################################
+# load metadata
+##########################################################################
 
-
-setwd("/home/gosia/Multinomial_project/Simulations_drosophila_V1_proteinCoding")
-
-# create metadata file
-metadata <- data.frame(SampleName1 = paste0(1:6), SampleName= paste0(c(rep("C1", 3), rep("C2", 3)), "S",c(1:3, 1:3)), condition=c(rep("C1", 3), rep("C2", 3)))
-metadata$condition <- as.factor(metadata$condition)
-
-metadata
-
-
-
-
-#######################################################
-# load information about simulation 
-#######################################################
-
-simu_info.e <- read.table("Simu_info/true_exons_simulation.txt", header=T)
-simu_info.g <- read.table("Simu_info/true_genes_simulation.txt", header=T)
-
-head(simu_info.g)
-head(simu_info.e)
-
-simu_info1 <- simu_info.g[!duplicated(simu_info.g$gene_id),c("gene_id", "status", "num", "rpk.mean")]
-
-### count number of defferentially spliced exons
-
-simu_info.e.spl <- split(simu_info.e, simu_info.e$gene_id)
-
-num <- sapply(simu_info.e.spl, function(g){
-  # g = simu_info.e.spl[[2]]
-  
-  n <- sum(g$status_exon==1)
-  
-  if(is.na(n))
-    n <- 0
-  
-  return(n)
-})
-
-table(num, useNA = "always")
-
-simu_info2 <- data.frame(gene_id = names(num), num.diff.ex=num)
-
-
-simu_info <- merge(simu_info1, simu_info2, by = "gene_id", all=TRUE)
-simu_info$num.diff.ex[is.na(simu_info$num.diff.ex)] <- 0
-
-write.table(simu_info, "Simu_info/simu_info.xls", quote = F, sep = "\t", row.names = F, col.names = T)
-
+metadata <- read.table("metadata/metadata.xls", header = TRUE, sep = "\t", as.is = TRUE)
 
 
 #######################################################
@@ -80,10 +41,10 @@ results <- list()
 ####################### results produced by Katarina
 
 ### DEXSeq
-rt <- read.table("Results_from_Katarina/dexseq_1.10.8_gene_htseq_results.txt", header = T, as.is = TRUE)
+rt <- read.table("DEXSeq_1.10.0/diff_out_Model_full/DEXSeq_gene_results.txt", header = T, as.is = TRUE)
 head(rt)
 
-rt <- rt[,c("Gene", "padjust")]
+rt <- rt[,c("geneID", "pvalue")]
 colnames(rt) <- c("Gene",  "adjPValue_htseq_dexseq")
 
 results[["htseq_dexseq"]] <- rt
@@ -92,43 +53,14 @@ sum(results[["htseq_dexseq"]]$adjPValue_htseq_dexseq < 0.05)
 
 
 
-### Cuffdiff
-
-rt <- read.table("Results_from_Katarina/cuffdiff_version_2.2.1_results.txt", header = T, as.is = TRUE)
-head(rt)
-### remove duplicated genes
-rt <- rt[order(rt$FDR, decreasing = FALSE),]
-rt <- rt[!duplicated(rt$gene_id), ]
-
-rt <- rt[,c("gene_id", "FDR")]
-colnames(rt) <- c("Gene",  "adjPValue_cuffdiff")
-
-results[["cuffdiff"]] <- rt
-
-####################### Other results 
-
-
-### DEXSeq on bitseq counts
-
-rt <- read.table("DEXSeq_1.10.8/bitseq_1.10.0/dexseq_1.10.8_gene_bitseq_results.txt", header = T, as.is = TRUE)
-head(rt)
-
-rt <- rt[,c("Gene", "padjust")]
-colnames(rt) <- c("Gene",  "adjPValue_bitseq_dexseq")
-
-results[["bitseq_dexseq"]] <- rt
-
-
-
-
 ####################### DM_0.1.4 results on htseq counts and bitseq 
 
 
 filter.methodList <- c("Filtering_DEXSeq", "Filtering0", "Filtering001") 
-filter.method <- filter.methodList[3]
+filter.method <- filter.methodList[1]
 
 
-count.methodList <- c("htseq", "bitseq")
+count.methodList <- c("htseq", "bitseq")[1]
 
 for(count.method in count.methodList){
   # count.method = count.methodList[1]; filter.method = filter.methodList[1]
@@ -155,28 +87,26 @@ for(count.method in count.methodList){
 names(results)
 
 
+
+
 #######################################################
-# merge Diff Expr results with simu_info into one table
+# merge Diff Expr results into one table
 #######################################################
 
 
 out.dir <- paste0("PLOTS_DM_0_1_4/", filter.method,"/")
 dir.create(out.dir, showWarnings=F, recursive=T)
 
+table <- results[[1]]
 
-
-simu_info <- read.table("Simu_info/simu_info.xls", header=T)
-dim(simu_info)
-
-table <- simu_info
-
-for(i in 1:length(results)){
+for(i in 2:length(results)){
   print(dim(results[[i]]))
-  table <- merge(table, results[[i]], by.x="gene_id", by.y="Gene", all.x = TRUE)  
+  table <- merge(table, results[[i]], by="Gene",  all = TRUE)  
   table <- unique(table)
   print(dim(table))
 }
 
+names(table)[1] <- "gene_id"
 
 write.table(table, paste0(out.dir,"/Table_all_results.xls"),  quote = F, sep = "\t", row.names = F, col.names = T)
 
@@ -187,8 +117,6 @@ dim(table)
 head(table)
 colnames(table)
 
-tdp <- table[duplicated(table$gene_id, fromLast = T) | duplicated(table$gene_id, fromLast = F),]
-dim(tdp)
 
 
 ##############################################################################################################
@@ -201,7 +129,7 @@ library(gridExtra)
 
 
 filter.methodList <- c("Filtering_DEXSeq", "Filtering0", "Filtering001") 
-filter.method <- filter.methodList[2]
+filter.method <- filter.methodList[1]
 
 out.dir <- paste0("PLOTS_DM_0_1_4/", filter.method,"/")
 
@@ -234,7 +162,6 @@ name <- ""
 
 
 
-
 #######################################################
 # histograms of p-values
 #######################################################
@@ -249,14 +176,14 @@ for(i in seq_len(nrow(colors))){
   # i=1
   cat(i, "\n")
   
-#   df <- data.frame(PValues = table[, paste0("PValue_", colors$names[i]) ])
-#   
-#   ggp <- ggplot(df, aes(x = PValues)) +
-#     ggtitle(colors$names[i]) +
-#     geom_histogram(binwidth = 0.01, fill=colors$colors[i]) +
-#     theme(text = element_text(size=10))
-#    
-#   print(ggp)
+  #   df <- data.frame(PValues = table[, paste0("PValue_", colors$names[i]) ])
+  #   
+  #   ggp <- ggplot(df, aes(x = PValues)) +
+  #     ggtitle(colors$names[i]) +
+  #     geom_histogram(binwidth = 0.01, fill=colors$colors[i]) +
+  #     theme(text = element_text(size=10))
+  #    
+  #   print(ggp)
   
   PValues = table[, paste0("PValue_", colors$names[i]) ] 
   hist(PValues, breaks = 100, main = paste0(colors$names[i]), col = colors$colors[i], cex.main = 1)
@@ -269,82 +196,62 @@ dev.off()
 
 
 #######################################################
-# generate ROCx plots 
+# generate venn diagrams 
 #######################################################
 
-source("/home/gosia/R/R_Multinomial_project/Plot_Functions/ROCx_0_1_4.R")
 
-colors <- allMethods[grepl("DM",allMethods$names),]
+source("/home/gosia/R/R_Multinomial_project/Plot_Functions/plotVenn_0_1_4.R")
+
+name <- ""
+
+colors <- allMethods
+
+FDR.cutoff <- 0.05
 
 
-methodsListLeg <- methodsList <- list(
-  DM = colors[grepl("DM", colors$names), ])
 
+## TP as a separate circle
+venn.list <- list()
 
-for(j in names(methodsList)){
-  # j = names(methodsList)[1]
-  
-  methods <- methodsList[[j]]
-  
-  scores <- list()
-  
-  for(i in methods$names)
-  scores[[i]] <- data.frame(pvs = table[, paste0("PValue_", i)], apvs = table[ ,paste0("adjPValue_", i)], status = table$status)
-  
-  names(scores) <- methods$names
-  colours <- methods$colors
-  names(colours) <- methods$names
-  
-  plotPath =  paste0(out.dir, "/",name,"rocX_notNorm_",j,".pdf")
-  
-  # ggROCx_notNorm(scores = scores, colours = colours, plotPath = plotPath)
-  ROCx_notNorm(scores = scores, colours = colours, plotPath = plotPath, xlim=c(0,0.8), ylim=c(0.8,1))
-  
+for(i in colors$names){ 
+  venn.list[[i]] <- na.omit(table[ table[,paste0("adjPValue_", i)] < FDR.cutoff, "Gene"]) 
 }
 
+names(venn.list)
 
 
 
 
+count.method <- "htseq"
+# count.method <- "bitseq"
 
+colors <- allMethods[grepl(count.method, allMethods$names) & grepl("DM", allMethods$names), ]
 
+methodsListLeg <- methodsList <- list()
 
-#######################################################
-# generate TPR vs achieved FDR plots
-#######################################################
-
-source("/home/gosia/R/R_Multinomial_project/Plot_Functions/TPRvsFDR_0_1_4.R")
+for(i in colors$names){
+  methodsListLeg[[i]] <- c("DEXSeq", "DM")
+    methodsList[[i]] <- c(paste0(count.method, "_dexseq"), i)
+}
 
 
 colors <- allMethods
 
-
-methodsListLeg <- methodsList <- list(
-  all = colors, 
-  htseq = colors[grepl("htseq", colors$names), ],
-  bitseq = colors[grepl("bitseq", colors$names), ])
-
-
-lim <- list(all = data.frame(x = c(0, 0.3), y = c(0.4, 1)), htseq = data.frame(x = c(0, 0.3), y = c(0.8, 1)), bitseq = data.frame(x = c(0, 0.3), y = c(0.8, 1)))
-
-
 for(j in names(methodsList)){
   # j = names(methodsList)[1]
-  
   methods <- methodsList[[j]]
+  methodsLeg <- methodsListLeg[[j]]
   
-  scores <- list()
+  plotPath =  paste0(out.dir, "/", name, "Venn_Diagram_",j,".pdf")
   
-  for(i in methods$names)
-    scores[[i]] <- data.frame(apvs = table[ ,paste0("adjPValue_", i)], status = table$status)
+  venn.colors <- colors[methods, "colors"]
+  names(venn.colors) <- methods
   
-  names(scores) <- methods$names
-  colours <- methods$colors
-  names(colours) <- methods$names
+  venn.list_tmp <- venn.list[methods]
+  names(venn.list_tmp) <- methodsLeg
+  names(venn.colors) <- methodsLeg
   
-  plotPath =  paste0(out.dir, "/", name, "TPRachievedFDR_",j,".pdf")
-  
-  TPRvsFDR(scores = scores, colours = colours, plotPath = plotPath, xlim = lim[[j]][, "x"], ylim = lim[[j]][, "y"])
+  plotVenn2(venn.list = venn.list_tmp, venn.colors = venn.colors, venn.subset = methodsLeg, margin = 0, cat.cex=2, cex=1.7, plotPath = plotPath)
   
   
 }
@@ -372,8 +279,10 @@ plotProportions <- function(dgeDM, genes2plot, plotPath){
     
     gene <- genes2plot[g]
     # print(gene)
-    Condition <- dgeDM$samples$group 
-    expr <- dgeDM$counts[[gene]]
+    oo <- order(dgeDM$samples$group)
+    Condition <- dgeDM$samples$group[oo]
+
+    expr <- dgeDM$counts[[gene]][,oo]
     
     labels <- strsplit2(rownames(expr), ":")[, 2]
     
@@ -457,10 +366,8 @@ plotProportions <- function(dgeDM, genes2plot, plotPath){
 
 
 #######################################################
-# plot expression ratios of FP called by DM
+# plot expression ratios of FP and FN called by DM
 #######################################################
-
-
 
 
 
@@ -472,7 +379,6 @@ venne.genes <- list()
 for(i in allMethods$names){ 
   venne.genes[[i]] <- na.omit(table[ table[,paste0("adjPValue_", i)] < FDR.cutoff, "gene_id"]) 
 }
-venne.genes$True <- na.omit(table[table$status == 1, "gene_id"])
 
 
 for(count.method in count.methodList){
@@ -483,7 +389,7 @@ for(count.method in count.methodList){
   
   
   for(m in 1:length(DM.methods)){
-    # m = 1
+    # m = 4
     
     method <- DM.methods[m]
     method
@@ -491,80 +397,62 @@ for(count.method in count.methodList){
     method.ref
     
     ### list of FP
-    FP <- setdiff(setdiff(venne.genes[[method]], venne.genes[["True"]]), venne.genes[[method.ref]])
+    FP <- setdiff(venne.genes[[method]], venne.genes[[method.ref]])
     # FP2plot <- setdiff(venne.genes[[method]], venne.genes[["True"]])
     cat("Number of FP: ",length(FP), "\n")
     
-    ### order FP genes by significance
-    table.FP <- table[table$gene_id %in% FP, c("gene_id", paste0("adjPValue_", method))]
-    table.FP <- table.FP[order(table.FP[, 2], decreasing = FALSE), ]
     
-    genes2plot <- table.FP[1:20, "gene_id"]
+    if(!length(FP) == 0){
+      ### order FP genes by significance
+      table.FP <- table[table$gene_id %in% FP, c("gene_id", paste0("adjPValue_", method))]
+      table.FP <- table.FP[order(table.FP[, 2], decreasing = FALSE), ]
+      
+      genes2plot <- table.FP[1:min(20, nrow(table.FP)), "gene_id"]
+      
+      ### load DM pipeline results
+      dgeDM.rdata <- file.path(res.path, paste0(gsub( "\\.", "-",method), "_dgeDM.RData"))
+      print(dgeDM.rdata)
+      load(dgeDM.rdata)
+      # dgeDM
+      
+      rownames(dgeDM$table) <- dgeDM$table$GeneID
+      
+      plotPath <- file.path(out.dir, paste0("ExonProportions_topFP_", gsub( "\\.", "_",method),".pdf"))
+      
+      plotProportions(dgeDM, genes2plot, plotPath)
+      
+    }
+      
     
-    ### load DM pipeline results
-    dgeDM.rdata <- file.path(res.path, paste0(gsub( "\\.", "-",method), "_dgeDM.RData"))
-    print(dgeDM.rdata)
-    load(dgeDM.rdata)
-    # dgeDM
-    
-    rownames(dgeDM$table) <- dgeDM$table$GeneID
 
-    plotPath <- file.path(out.dir, paste0("ExonProportions_topFP_", gsub( "\\.", "_",method),".pdf"))
-    
-    plotProportions(dgeDM, genes2plot, plotPath)
-    
     
     ### list of FN
-    FN <- intersect(setdiff(venne.genes[["True"]], venne.genes[[method]]), venne.genes[[method.ref]])
+    FN <- setdiff(venne.genes[[method.ref]], venne.genes[[method]])
     cat("Number of FN: ",length(FN), "\n")
-    
-    ### order FN genes by significance
-    table.FN <- table[table$gene_id %in% FN, c("gene_id", paste0("adjPValue_", method))]   
-    nas <- table(is.na(table.FN[, 2]))
-    print(nas) 
-    if(! "FALSE" %in% names(nas))
-      next
-    
-    table.FN <- table.FN[order(table.FN[, 2], decreasing = TRUE), ]
-    
-    genes2plot <- table.FN[1:min(20, nas["FALSE"]), "gene_id"]
-    
-    plotPath <- file.path(out.dir, paste0("ExonProportions_topFN_", gsub( "\\.", "_",method),".pdf"))
-    
-    plotProportions(dgeDM, genes2plot, plotPath)
-    
+    if(! length(FN) == 0){
+      
+      ### order FN genes by significance
+      table.FN <- table[table$gene_id %in% FN, c("gene_id", paste0("adjPValue_", method))]   
+      nas <- table(is.na(table.FN[, 2]))
+      print(nas) 
+      if(! "FALSE" %in% names(nas))
+        next
+      
+      table.FN <- table.FN[order(table.FN[, 2], decreasing = TRUE), ]
+      
+      genes2plot <- table.FN[1:min(20, nas["FALSE"]), "gene_id"]
+      
+      plotPath <- file.path(out.dir, paste0("ExonProportions_topFN_", gsub( "\\.", "_",method),".pdf"))
+      
+      plotProportions(dgeDM, genes2plot, plotPath)
+      
+    }
+  
+
     
   }
   
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -6,6 +6,10 @@
 # Updated 28 May 2015
 # Run on DM_0_1_2 data but the clean (NA for variants with less than 5 replicates) genotypes
 
+
+# Updated 11 June 2015
+# Run on DM_0_1_5 data
+
 ##############################################################################################################
 
 setwd("/home/Shared/data/seq/GEUVADIS/")
@@ -23,10 +27,10 @@ library(gridExtra)
 library(RColorBrewer)
 
 
-Rfiles <- list.files("/home/gosia/R/R_Multinomial_project/DM_package_devel/DM/R/", full.names=TRUE)
+Rfiles <- list.files("/home/gosia/R/R_Multinomial_project/DM_package_devel/DM_0.1.4/R/", full.names=TRUE)
 for(i in Rfiles) source(i)
 
-
+library(pryr)
 
 
 ##########################################################################################
@@ -43,7 +47,7 @@ load(paste0("DM_0_1_3_Data/dgeSQTL_chr5.RData"))
 
 
 
-######### run on chr5 DM_0_1_2 data / clean version
+######### run on DM_0_1_2 data / clean version
 out.dir <- "DM_0_1_4_sQTL_analysis/Results_Data_DM_0_1_2_clean_TagwiseDisp_gridNone_tol12_constrOptim2G/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -51,55 +55,84 @@ load(paste0("DM_0_1_2_Data/dgeSQTL_clean.RData"))
 
 
 
+######### run on DM_0_1_5 data
+out.dir <- "DM_0_1_4_sQTL_analysis/Results_Data_DM_0_1_5_TagwiseDisp_gridNone_tol12_constrOptim2G/"
+dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
+
+# load(paste0("DM_0_1_5_Data/dgeSQTL.RData"))
+# 
+# dgeSQTL$samples <- colnames(dgeSQTL$counts[[1]])
+# 
+# genes <- lapply(names(dgeSQTL$counts), function(g){
+#   data.frame(ete_id = rownames(dgeSQTL$counts[[g]]), gene_id = g, stringsAsFactors = FALSE)
+# })
+# dgeSQTL$genes <- do.call(rbind, genes)
+# 
+# 
+# SNPs <- lapply(names(dgeSQTL$genotypes), function(g){
+#   data.frame(SNP_id = rownames(dgeSQTL$genotypes[[g]]), gene_id = g, stringsAsFactors = FALSE)
+#   # matrix(c(rownames(dgeSQTL$genotypes[[g]]), rep(g, nrow(dgeSQTL$genotypes[[g]]))), byrow = FALSE, dimnames = c("SNP_id", "gene_id"))
+# })
+# dgeSQTL$SNPs <- do.call(rbind, SNPs)
+# dgeSQTL$SNPs$chr <- strsplit2(dgeSQTL$SNPs$SNP_id, "_")[, 2]
+# 
+# dgeSQTL$genotypes <- do.call(rbind, dgeSQTL$genotypes)
+# rownames(dgeSQTL$genotypes) <- NULL
+# 
+# save(dgeSQTL, file = paste0("DM_0_1_5_Data/dgeSQTL_DM_0_1_4.RData"))
+
+
+load(paste0("DM_0_1_5_Data/dgeSQTL_DM_0_1_4.RData"))
 
 
 
 
 
+#################################
+######## run the DM pipeline
+#################################
 
+head(dgeSQTL$SNPs$SNP_id)
+head(dgeSQTL$genes$gene_id)
 
-
-dgeSQTL.org <- dgeSQTL
-
-head(dgeSQTL.org$SNPs$SNP_id)
-head(dgeSQTL.org$genes$gene_id)
-
-keep.genes <- data.frame(gene_id = intersect(unique(dgeSQTL.org$genes$gene_id), unique(dgeSQTL.org$SNPs$gene_id)), stringsAsFactors = FALSE)
+keep.genes <- data.frame(gene_id = intersect(unique(dgeSQTL$genes$gene_id), unique(dgeSQTL$SNPs$gene_id)), stringsAsFactors = FALSE)
 dim(keep.genes)
 
-keep.genes <- merge(keep.genes, unique(dgeSQTL.org$SNPs[, c("gene_id", "chr")]), by = "gene_id", all.x = TRUE, sort = FALSE)
+keep.genes <- merge(keep.genes, unique(dgeSQTL$SNPs[, c("gene_id", "chr")]), by = "gene_id", all.x = TRUE, sort = FALSE)
 dim(keep.genes)
 
 
-mcCores <- 10
+mcCores <- 5
 
 
+dgeSQTL_org <- dgeSQTL
 
-for(chr in 1:22){
-  # chr = 5
+
+DM_pipeline_per_chr <- function(dgeSQTL_org, keep.genes, chr, out.dir, mcCores){
   
-  dgeSQTL <- dgeSQTL.org
-
-  ### subset the dgeSQTL object 
   keep.genes.chr <- keep.genes[keep.genes$chr == chr, "gene_id"]
-
-  dgeSQTL$counts <- dgeSQTL$counts[keep.genes.chr]
-  dgeSQTL$genes <- dgeSQTL$genes[dgeSQTL$genes$gene_id %in% keep.genes.chr, ]
-  dgeSQTL$genotypes <- dgeSQTL$genotypes[dgeSQTL$SNPs$gene_id %in% keep.genes.chr, ]
-  dgeSQTL$SNPs <- dgeSQTL$SNPs[dgeSQTL$SNPs$gene_id %in% keep.genes.chr, ]
-
-  save(dgeSQTL, file = paste0(out.dir, "dgeSQTL_chr",chr,".RData"))
-#   load(paste0(out.dir, "dgeSQTL_chr",chr,".RData"))
+  
+  dgeSQTL <- DGEList()
+  dgeSQTL$counts <- dgeSQTL_org$counts[keep.genes.chr]
+  dgeSQTL$genes <- dgeSQTL_org$genes[dgeSQTL_org$genes$gene_id %in% keep.genes.chr, ]
+  dgeSQTL$genotypes <- dgeSQTL_org$genotypes[dgeSQTL_org$SNPs$gene_id %in% keep.genes.chr, ]
+  dgeSQTL$SNPs <- dgeSQTL_org$SNPs[dgeSQTL_org$SNPs$gene_id %in% keep.genes.chr, ]
+  
+  # save(dgeSQTL, file = paste0(out.dir, "dgeSQTL_chr",chr,".RData"))
+  #   load(paste0(out.dir, "dgeSQTL_chr",chr,".RData"))
+  
   
   ######### commonDispersion
   cat(paste0("chr", chr," estimate common dispersion \n"))
   
-   # dgeSQTL <- dmSQTLEstimateCommonDisp(dgeSQTL, adjust = TRUE, subset = round(nrow(dgeSQTL$genotypes)/170) , mode = "constrOptim2G", epsilon = 1e-05, maxIte = 1000, interval = c(0, 1e+2), tol = 1e-02, mcCores=mcCores, verbose=FALSE)
-# 
-   # write.table(dgeSQTL$commonDispersion, paste0(out.dir, "commonDispersion_chr", chr, ".txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
-
-  # dgeSQTL$commonDispersion <- as.numeric(read.table(paste0(out.dir, "commonDispersion_chr", chr, ".txt" )))
-  dgeSQTL$commonDispersion <- 4
+  dgeSQTL <- dmSQTLEstimateCommonDisp(dgeSQTL, adjust = TRUE, subset = length(dgeSQTL$counts) , mode = "constrOptim2G", epsilon = 1e-05, maxIte = 1000, interval = c(0, 1e+2), tol = 1e-02, mcCores=mcCores, verbose=FALSE)
+  
+  write.table(dgeSQTL$commonDispersion, paste0(out.dir, "commonDispersion_chr", chr, ".txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
+  
+  #   dgeSQTL$commonDispersion <- as.numeric(read.table(paste0(out.dir, "commonDispersion_chr", chr, ".txt" )))
+  #   dgeSQTL$commonDispersion <- 4
+  
+  
   
   ######### tagwiseDispersion
   cat(paste0("chr", chr," estimate tagwise dispersion \n"))
@@ -110,9 +143,9 @@ for(chr in 1:22){
   
   write.table(tagwiseDispersion, paste0(out.dir, "tagwiseDispersion_chr", chr, ".txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
   
-#   tagwiseDispersion <- read.table(paste0(out.dir, "tagwiseDispersion_chr", chr, ".txt" ), header = TRUE)
-#   dgeSQTL$tagwiseDispersion <- tagwiseDispersion[, "tagwiseDispersion"]
-#   names(dgeSQTL$tagwiseDispersion) <- tagwiseDispersion[, "SNP_id"]
+  #   tagwiseDispersion <- read.table(paste0(out.dir, "tagwiseDispersion_chr", chr, ".txt" ), header = TRUE)
+  #   dgeSQTL$tagwiseDispersion <- tagwiseDispersion[, "tagwiseDispersion"]
+  #   names(dgeSQTL$tagwiseDispersion) <- tagwiseDispersion[, "SNP_id"]
   
   
   ######### DM fitting 
@@ -132,20 +165,30 @@ for(chr in 1:22){
   
   cat(paste0("chr", chr," done \n \n"))
   
-  gc()
+  return(NULL)
   
 }
 
 
 
-### check how many snps are called significant 
-table(dgeSQTL$table$FDR < 0.05, useNA = "always")
+mem_change_chr <- rep(NA, 22)
+mem_used_chr <- rep(NA, 22)
 
-table(dgeSQTL$table$LR < 0, useNA = "always")
 
-### check how many genes are called significant 
-length(unique((dgeSQTL$table$gene_id)))
-length(unique((dgeSQTL$table$gene_id[dgeSQTL$table$FDR < 0.05])))
+for(chr in 1:22){
+  # chr = 22
+  
+  mem_change_chr[chr] <- mem_change(DM_pipeline_per_chr(dgeSQTL_org, keep.genes, chr, out.dir, mcCores))
+  mem_used_chr[chr] <- mem_used()
+  
+  
+}
+
+
+
+
+
+
 
 
 
@@ -159,6 +202,11 @@ out.dir.plots <- "DM_0_1_4_sQTL_analysis/Plots_Data_DM_0_1_2_clean_TagwiseDisp_g
 dir.create(out.dir.plots, showWarnings = FALSE, recursive = TRUE)
 
 
+
+
+out.dir <- "DM_0_1_4_sQTL_analysis/Results_Data_DM_0_1_5_TagwiseDisp_gridNone_tol12_constrOptim2G/"
+out.dir.plots <- "DM_0_1_4_sQTL_analysis/Plots_Data_DM_0_1_5_TagwiseDisp_gridNone_tol12_constrOptim2G/"
+dir.create(out.dir.plots, showWarnings = FALSE, recursive = TRUE)
 
 
 ##########################################################################################
@@ -179,12 +227,12 @@ res <- lapply(1:22, function(chr){
   
   results[!complete.cases(results), ]
   
-  pdf(paste0(out.dir, "hist_pvalues_chr",chr,".pdf"))
-  
-  hist(results[, "PValue"], breaks = 100, cex.lab=1.5, cex.axis = 1.5, xlab="P-values", main = "", col = "#1E90FF")
-  hist(results[, "LR"], breaks = 100, cex.lab=1.5, cex.axis = 1.5, xlab="LR", main = "", col = "#1E90FF")
-  
-  dev.off()
+#   pdf(paste0(out.dir, "hist_pvalues_chr",chr,".pdf"))
+#   
+#   hist(results[, "PValue"], breaks = 100, cex.lab=1.5, cex.axis = 1.5, xlab="P-values", main = "", col = "#1E90FF")
+#   hist(results[, "LR"], breaks = 100, cex.lab=1.5, cex.axis = 1.5, xlab="LR", main = "", col = "#1E90FF")
+#   
+#   dev.off()
   
   return(results)
   })
@@ -202,8 +250,7 @@ res.table <- res
 
 res.table$SNPgene <- paste0(res.table$SNP_id, "-", res.table$gene_id)
 
-
-write.table(res, paste0(out.dir, "CEU_results_all.txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+# write.table(res, paste0(out.dir, "CEU_results_all.txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
 
 
@@ -211,63 +258,7 @@ write.table(res, paste0(out.dir, "CEU_results_all.txt" ), quote = FALSE, sep = "
 
 table(res$LR < 0, useNA = "always")
 
-
-
-
-##### merge tagwise dispersion 
-
-res <- lapply(1:22, function(chr){ results <- read.table(paste0(out.dir, "tagwiseDispersion_chr", chr, ".txt" ), header = TRUE, as.is = TRUE)})
-
-res <- do.call(rbind, res)
-
-write.table(res, paste0(out.dir, "tagwiseDispersion.txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
-
-
-
-gene <- "ENSG00000169045.13"
-snp <- "snp_5_179056159"
-
-res[res$SNP_id == paste(snp, gene, sep="-"), ] # 0.1092517 - this is the value estimated with DM_0.1.2.
-
-
-
-
-
-########## check the uncomplete cases with NA
-chr = 1
-
-load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
-results <- read.table(paste0(out.dir, "results_chr", chr, ".txt" ), header = TRUE, as.is = TRUE)
-
-results[!complete.cases(results),]
-
-nr <- results[!complete.cases(results),]
-
-dim(nr)
-
-gene <- "ENSG00000162779.14"
-snp <- "snp_1_179407523"
-
-
-table(dgeSQTL.org$genotypes[dgeSQTL.org$SNPs[, "gene_id"] == gene & dgeSQTL.org$SNPs[, "SNP_id"] == snp, ])
-
-
-dgeSQTL$fit[[snp]]
-
-nf <- names(dgeSQTL$fit)
-
-table(duplicated(nf))
-
-snp %in% nf[duplicated(nf)]
-
-table(nr$SNP_id %in% nf[duplicated(nf)])
-
-table(is.na(dgeSQTL$tagwiseDispersion))
-
-dgeSQTL$tagwiseDispersion[paste0(nr$SNP_id, "-", nr$gene_id)]
-
-dgeSQTL$counts[[gene]] ### plenty of NAs
-
+res[res$LR < 0, ]
 
 
 
@@ -302,10 +293,6 @@ res <- lapply(1:22, function(chr){
 res <- do.call(rbind, res)
 
 res.info <- res
-
-write.table(res, paste0(out.dir, "meanExpr.txt" ), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
-
-
 
 
 #### merge res.table and res.info
@@ -348,8 +335,6 @@ res <- mclapply(1:22, function(chr){
   
   dev.off()
   
-  gc()
-  
   return(NULL)
   
 }, mc.cores = 5)
@@ -362,8 +347,9 @@ res <- mclapply(1:22, function(chr){
 ##########################################################################################
 
 
+res.table <- read.table(paste0(out.dir, "CEU_results_all_info.txt" ), header = TRUE, sep = "\t", as.is = TRUE)
 
-pdf(paste0(out.dir, "hist_pvalues.pdf"))
+pdf(paste0(out.dir.plots, "hist_pvalues.pdf"))
 
 hist(res.table[, "PValue"], col = "orange", breaks = 100, cex.lab=1.5, cex.axis = 1.5, xlab="P-values", main = "")
 
@@ -377,6 +363,7 @@ dev.off()
 ##########################################################################################
 
 
+res.all<- read.table(paste0(out.dir, "CEU_results_all_info.txt" ), header = TRUE, sep = "\t", as.is = TRUE)
 
 
 pdf(paste0(out.dir.plots, "/Hist_numberOfSNPsPerGene.pdf"))
@@ -394,6 +381,7 @@ dev.off()
 ##########################################################################################
 ####### Check which gene has the most of the significant snps
 ##########################################################################################
+
 
 tt <- table(res.all$gene_id)
 ttSign <- table(res.all[res.all$FDR < 0.05, "gene_id"])
@@ -418,14 +406,6 @@ dev.off()
 
 
 
-gene <- "ENSG00000196735.6"
-
-snps <- res.all[res.all$gene_id == gene & res.all$FDR < 0.05, "SNP_id"]
-
-chr = 6
-load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
-
-
 
 
 
@@ -447,8 +427,6 @@ snp <- "snp_5_96244549"
 gene <- "ENSG00000164308.12"
 
 res.all[res.all$SNP_id == snp & res.all$gene_id == gene, ]
-
-
 
 
 ##########################################################################################
@@ -555,7 +533,7 @@ plotProportions <- function(dgeSQTL, plot.snps, plotPath){
 
 
 
-#### SNP with most genative LR in DM_0.1.2 analysis
+#### SNP with most negative LR in DM_0.1.2 analysis
 gene <- "ENSG00000169045.13"
 snp <- "snp_5_179056159"
 
@@ -602,10 +580,19 @@ plotProportions(dgeSQTL, plot.snps, plotPath)
 
 
 
+
+
+
 #### most significant SNPs that belong to a gene with highest number of siginificant SNPs
+
+gene <- "ENSG00000196735.6"
+
+snps <- res.all[res.all$gene_id == gene & res.all$FDR < 0.05, "SNP_id"]
 
 chr = 6
 load(paste0(out.dir, "dgeSQTL_chr", chr, ".RData" ))
+
+
 
 plot.snps <- data.frame(gene_id = gene, SNP_id = snps, stringsAsFactors = FALSE)
 

@@ -19,6 +19,7 @@ library(edgeR)
 out.dir <- "DM_0_1_5_Data/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
+library(BiocParallel)
 
 ##########################################################################################
 # paths to data used for filtering
@@ -40,69 +41,74 @@ groups = subset(groups,group=="CEU")
 # 1) Filter transcripts and genes for they min expression 
 ##########################################################################################
 
+BPPARAM <- MulticoreParam(workers = 5)
+
 trans.exp <- read.table(trans.exp.f, header = TRUE, as.is = TRUE)
 
-min_samps <- 5
-min_transcript_prop <- 0.1 # in cpm
-min_gene_exp <- 1 # in cpm
+min_transcript_prop <- 0.1
+min_samps_transcript_prop <- 5
+min_samps_gene_expr <- 70
+min_gene_expr <- 1 # in cpm
 
 
-expr <-  trans.exp[, groups$sample]
+expr <-  round(as.matrix(trans.exp[, groups$sample]))
 colnames(expr) <- groups$sampleShort
 rownames(expr) <- trans.exp$trId
 expr_info <- trans.exp[, c(1,2)]
 
+### calculate cpm
 dge <- DGEList(counts = expr, genes = expr_info)
 expr_cpm <- cpm(dge)
-
 rownames(expr_cpm) <- expr_info$trId
 
-expr_cpm_spl <- split(data.frame(expr_cpm), expr_info$geneId, drop = TRUE) 
-expr_cpm_spl <- lapply(expr_cpm_spl, as.matrix)
+expr_cpm_spl <- split.data.frame(expr_cpm, expr_info$geneId, drop = TRUE) 
+
+expr_spl <- split.data.frame(expr, expr_info$geneId, drop = TRUE) 
 
 
-trans2keep <- lapply(expr_cpm_spl, function(expr_gene){
-# expr_gene <- expr_cpm_spl[[1230]]
+counts <- bplapply(names(expr_cpm_spl), function(gene){
+  # gene <- "ENSG00000164308.12"
+  
+  expr_cpm_gene <- expr_cpm_spl[[gene]]
+  expr_gene <- expr_spl[[gene]]
   
   ### no genes with one transcript
-  if(dim(expr_gene)[1] == 1)
+  if(dim(expr_cpm_gene)[1] == 1)
     return(NULL)
   
-  ### genes with min expression in all samples
-  if(any(colSums(expr_gene) < min_gene_exp))
+  ### genes with min expression
+  samps2keep <- colSums(expr_cpm_gene) > min_gene_expr
+  
+  if(sum(samps2keep) < min_samps_gene_expr)
     return(NULL)
   
-  prop <- prop.table(expr_gene, 2)
+  ### transcripts with min proportion
+  prop <- prop.table(expr_gene[, samps2keep], 2)
   
-  trans2keep <- rowSums(prop > min_transcript_prop) > min_samps
+  trans2keep <- rowSums(prop > min_transcript_prop) >= min_samps_transcript_prop
   
   ### no genes with one transcript
   if(sum(trans2keep) <= 1)
     return(NULL)
   
-  return(names(which(trans2keep == TRUE)))
+  expr <- expr_gene[trans2keep, ] 
+  expr[, !samps2keep] <- NA
   
-})
+  return(expr)
+  
+}, BPPARAM = BPPARAM)
 
-trans2keep <- unlist(trans2keep, use.names = FALSE)
-
-
-expr <- expr[expr_info$trId %in% trans2keep, ]
-expr_info <- expr_info[expr_info$trId %in% trans2keep, ]
+names(counts) <- names(expr_cpm_spl)
 
 
-### split expression by gene
-counts <- split(expr, expr_info$geneId, drop = TRUE) 
-counts <- lapply(counts, as.matrix)
+counts2keep <- !sapply(counts, is.null)
 
-counts_info <- expr_info[, c("geneId", "trId")]
-colnames(counts_info) <- c("gene_id", "ete_id")
+counts <- counts[counts2keep]
 
-
-save(counts, counts_info, file = paste0(out.dir, "/counts.RData"))
+save(counts, file = paste0(out.dir, "/counts.RData"))
 
 
-tt <- table(counts_info$gene_id)
+tt <- sapply(counts, nrow)
 
 pdf(paste0(out.dir, "/Hist_numberOfTranscripts.pdf"))
 hist(tt, breaks = max(tt), col = "orangered", main = paste0(length(tt), " genes \n ", sum(tt) , " transcripts "), xlab = "Number of transcripts per gene")
@@ -126,36 +132,35 @@ names(gene_rngs) <- gene_rngs$name
 
 genes_keep <- names(counts)
 
+genic_window=5e3
+
 gene_rngs <- gene_rngs[gene_rngs$name %in% genes_keep]
 gene_rngs <- gene_rngs[seqnames(gene_rngs) %in% 1:22]
+gene_rngs <- GenomicRanges::resize(gene_rngs, GenomicRanges::width(gene_rngs) + 2 * genic_window, fix="center")
 
 
-genic_window=5e3
 minSNP <- 5
 
+BPPARAM <- MulticoreParam(workers = 5)
 
 ## for each chromosome find SNPs-genes matches and prepare genotypes and SNPs tables
-genotypesList <- mclapply(2:20, function(chr){
-  # chr = 1
-  
-  cat(chr, fill = TRUE)
+genotypesList <- bplapply(1:22, function(chr){
+  # chr = 19
+  print(chr)
   
   ### keep the data for one chromosome only
   gene_rngs_chr <- gene_rngs[seqnames(gene_rngs) == chr, ]  
   counts_chr <- counts[names(gene_rngs_chr)]
-  
   
   ### read genotypes
   genotypes <- read.table(paste0(data.dir, "Genotypes/snps_CEU_chr", chr ,".tsv"), header = TRUE, sep = "\t", as.is = TRUE)
   rownames(genotypes) <- genotypes$snpId
   
   genotypes_info <- genotypes[, 1:4]
-  genotypes <- genotypes[, -c(1:4)]
+  genotypes <- as.matrix(genotypes[, -c(1:4)])
   
   ### snps ranges 
   snp_rngs_chr <- GenomicRanges::GRanges(genotypes_info$chr, IRanges::IRanges(genotypes_info$start, genotypes_info$end)) 
-  
-  all(colnames(genotypes) == colnames(counts[[1]]))
   
   ## Match genes and SNPs
   variantMatch <- GenomicRanges::findOverlaps(gene_rngs_chr, snp_rngs_chr, select = "all")
@@ -164,39 +169,40 @@ genotypesList <- mclapply(2:20, function(chr){
   q <- queryHits(variantMatch)
   s <- subjectHits(variantMatch)
   
-  genotypes <- split(genotypes[s, ], names(gene_rngs_chr)[q], drop = TRUE)
-  genotypes <- lapply(genotypes, as.matrix)
-  
-  
+  genotypes <- split.data.frame(genotypes[s, ], names(gene_rngs_chr)[q], drop = TRUE)
+
   geneList <- intersect(names(genotypes), names(counts_chr))
   
   
-  genotypes2keep <- mapply(function(counts_gene, genotypes_gene, gene){
+  genotypes2keep <- lapply(geneList, function(gene){
   
-    # gene = "ENSG00000203836.5"; counts_gene = counts_chr[[gene]]; genotypes_gene = genotypes[[gene]]
+    # gene <- "ENSG00000105341.11"
     # print(gene)
+    
+    counts_gene = counts_chr[[gene]]
+    genotypes_gene = genotypes[[gene]]
+
     
     ## NA for samples with non expressed genes and missing genotype
     genotypes_gene[, is.na(counts_gene[1,])] <- NA
     genotypes_gene[genotypes_gene == -1] <- NA
     
     ##### Keep genotypes with at least minSNP number of variants per group; in other case replace them with NAs
-    
     genotypes2keep_gene <- apply(genotypes_gene, 1 ,function(x){
       # x <- genotypes_gene[6,]
       
-      t <- table(x)
+      tt <- table(x)
       
-      if( length(t)==1 )
+      if( length(tt)==1 )
         return(NULL)
-      if( length(t)==2 ){
-        if(any(t <= minSNP))
+      if( length(tt)==2 ){
+        if(any(tt <= minSNP))
           return(NULL)
         return(x)
       }else{
-        if(sum(t <= minSNP) >= 2)
+        if(sum(tt <= minSNP) >= 2)
           return(NULL)
-        x[x == names(t[t <= minSNP])] <- NA
+        x[x == names(tt[tt <= minSNP])] <- NA
         return(x)
       }    
     })
@@ -210,39 +216,16 @@ genotypesList <- mclapply(2:20, function(chr){
       
     return(genotypes2keep_gene)
     
-  }, counts_chr[geneList], genotypes[geneList], geneList, SIMPLIFY = FALSE)
-  
+  })
   
   names(genotypes2keep) <- geneList
-  
   genotypes2keep <- genotypes2keep[!sapply(genotypes2keep, is.null)]
   
-  tt <- unlist(lapply(genotypes2keep, nrow))
+  save(genotypes2keep, file = paste0(out.dir, "genotypes_chr",chr ,".RData"))
   
-  pdf(paste0(out.dir, "/Hist_numberOfSnps_chr",chr,".pdf"))
-  hist(tt, breaks = 100, col = "chartreuse2", main = paste0(length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "Number of SNPs per gene")
-  dev.off()
-  
-  geneList <- names(genotypes2keep)
-
-  genotypes2keep_info <- plyr::ldply(lapply(geneList, function(gene){
-    # gene = "ENSG00000131795.7"
-    # print(gene)
-    
-#     if(is.null(genotypes2keep[[gene]]))
-#       return(NULL)
-    
-    data.frame(gene_id = gene, snp_id = rownames(genotypes2keep[[gene]]), chr = chr, stringsAsFactors = FALSE)
-    
-  }), identity)
-  
-
-  save(genotypes2keep, genotypes2keep_info, file = paste0(out.dir, "genotypes_chr",chr ,".RData"))
-  
-  gc()
   return(NULL)
   
-}, mc.cores = 5)
+}, BPPARAM = BPPARAM)
 
 
 
@@ -259,26 +242,17 @@ genotypes <- lapply(1:22, function(chr){
 
 genotypes <- unlist(genotypes, recursive = FALSE)
 
-tt <- unlist(lapply(genotypes, nrow))
+
+
+tt <- sapply(genotypes, nrow)
 
 pdf(paste0(out.dir, "/Hist_numberOfSnps.pdf"))
 hist(tt, breaks = 100, col = "chartreuse2", main = paste0(length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "Number of SNPs per gene")
 dev.off()
 
 
-genotypes_info <- lapply(1:22, function(chr){
-  
-  load(paste0(out.dir, "genotypes_chr",chr ,".RData"))
-  
-  return(genotypes2keep_info)
-  
-})
 
-
-genotypes_info <- plyr::ldply(genotypes_info, identity)
-
-
-save(genotypes, genotypes_info, file = paste0(out.dir, "genotypes.RData"))
+save(genotypes, file = paste0(out.dir, "genotypes.RData"))
 
 
 ##########################################################################################
@@ -313,14 +287,14 @@ dgeSQTL$samples <- data.frame(sample_names = colnames(counts[[1]]), stringsAsFac
 save(dgeSQTL, file=paste0(out.dir, "/dgeSQTL.RData"))
 
 
-tt <- unlist(lapply(dgeSQTL$genotypes, nrow))
+tt <- sapply(dgeSQTL$genotypes, nrow)
 
 pdf(paste0(out.dir, "/dgeSQTL_Hist_numberOfSnps.pdf"))
 hist(tt, breaks = 100, col = "chartreuse2", main = paste0(length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "Number of SNPs per gene")
 dev.off()
 
 
-tt <- unlist(lapply(dgeSQTL$counts, nrow))
+tt <- sapply(dgeSQTL$counts, nrow)
 
 pdf(paste0(out.dir, "/dgeSQTL_Hist_numberOfTranscripts.pdf"))
 hist(tt, breaks = max(tt), col = "orangered", main = paste0(length(tt), " genes \n ", sum(tt) , " transcripts "), xlab = "Number of transcripts per gene")

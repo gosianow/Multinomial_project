@@ -15,17 +15,6 @@
 
 setwd("/home/gosia/Multinomial_project/Simulations_drosophila_V1_proteinCoding")
 
-# create metadata file
-metadata <- data.frame(SampleName1 = paste0(1:6), SampleName= paste0(c(rep("C1", 3), rep("C2", 3)), "S",c(1:3, 1:3)), condition=c(rep("C1", 3), rep("C2", 3)))
-metadata$condition <- as.factor(metadata$condition)
-
-metadata
-
-
-
-out.dir <- "DM_0_1_4/"
-dir.create(out.dir, showWarnings=F, recursive=T)
-
 library(ggplot2)
 library(reshape2)
 library(gridExtra)
@@ -42,6 +31,17 @@ library(edgeR)
 ### Source all R files in DM package / DM_0.1.4
 Rfiles <- list.files("/home/gosia/R/R_Multinomial_project/DM_package_devel/DM/R/", full.names=TRUE)
 for(i in 1:length(Rfiles)) source(Rfiles[i])
+
+
+##############################################################################################################
+# load metadata
+##############################################################################################################
+
+# create metadata file
+metadata <- data.frame(SampleName1 = paste0(1:6), SampleName= paste0(c(rep("C1", 3), rep("C2", 3)), "S",c(1:3, 1:3)), condition=c(rep("C1", 3), rep("C2", 3)))
+metadata$condition <- as.factor(metadata$condition)
+
+metadata
 
 
 ##############################################################################################################
@@ -166,6 +166,8 @@ nlevels(dge$genes$gene_id)
 
 save(dge, file = paste0(out.dir, "/dge_counts_",count.method,".RData"))
 
+print(paste0(out.dir, "/dge_counts_",count.method,".RData"))
+load(paste0(out.dir, "/dge_counts_",count.method,".RData"))
 
 pdf(paste0(out.dir, "/Hist_numberOfTranscripts.pdf"))
 tt <- table(dge$genes$gene_id)
@@ -205,6 +207,11 @@ dge$counts <- lapply(dge$counts, as.matrix)  ## !!! have to conver into matrix, 
 nlevels(dge$genes$gene_id)
 
 save(dge, file = paste0(out.dir, "/dge_counts_",count.method,".RData"))
+
+
+
+print(paste0(out.dir, "/dge_counts_",count.method,".RData"))
+load(paste0(out.dir, "/dge_counts_",count.method,".RData"))
 
 pdf(paste0(out.dir, "/Hist_numberOfTranscripts.pdf"))
 tt <- table(dge$genes$gene_id)
@@ -265,8 +272,6 @@ min.gene.exp <- 1 # in cpm
 
 
 
-
-
 seq.depth <- colSums(expr)
 
 dge <- dgeOrg
@@ -316,6 +321,10 @@ nlevels(dge$genes$gene_id)
 
 save(dge, file = paste0(out.dir, "/dge_counts_",count.method,".RData"))
 
+
+print(paste0(out.dir, "/dge_counts_",count.method,".RData"))
+load(paste0(out.dir, "/dge_counts_",count.method,".RData"))
+
 pdf(paste0(out.dir, "/Hist_numberOfTranscripts.pdf"))
 tt <- table(dge$genes$gene_id)
 hist(tt, breaks = max(tt), col = "darkseagreen2", main = paste0(length(tt), " genes \n ", sum(tt) , " transcripts "), xlab = "number of transcripts per gene")
@@ -357,11 +366,15 @@ nlevels(dge$genes$gene_id)
 
 save(dge, file = paste0(out.dir, "/dge_counts_",count.method,".RData"))
 
+
+
+print(paste0(out.dir, "/dge_counts_",count.method,".RData"))
+load(paste0(out.dir, "/dge_counts_",count.method,".RData"))
+
 pdf(paste0(out.dir, "/Hist_numberOfTranscripts.pdf"))
 tt <- table(dge$genes$gene_id)
 hist(tt, breaks = max(tt), col = "darkseagreen2", main = paste0(length(tt), " genes \n ", sum(tt) , " transcripts "), xlab = "number of transcripts per gene")
 dev.off()
-
 
 
 ##############################################################################################################

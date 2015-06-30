@@ -214,9 +214,23 @@ dgeSQTL$counts <- lapply(dgeSQTL$counts, as.matrix)  ## !!! have to conver into 
 save(dgeSQTL, file=paste0(out.dir, "/dgeSQTL_clean.RData"))
 
 
+load(paste0(out.dir, "/dgeSQTL_clean.RData"))
+
+
+tt <- table(dgeSQTL$SNPs$gene_id)
+
+pdf(paste0(out.dir, "/dgeSQTL_Hist_numberOfSnps.pdf"))
+hist(tt, breaks = 100, col = "chartreuse2", main = paste0(length(tt), " genes \n ", sum(tt) , " SNPs "), xlab = "Number of SNPs per gene")
+dev.off()
 
 
 
+
+tt <- sapply(dgeSQTL$counts[unique(dgeSQTL$SNPs$gene_id)], nrow)
+
+pdf(paste0(out.dir, "/dgeSQTL_Hist_numberOfTranscripts.pdf"))
+hist(tt, breaks = max(tt), col = "orangered", main = paste0(length(tt), " genes \n ", sum(tt) , " transcripts "), xlab = "Number of transcripts per gene")
+dev.off()
 
 
 

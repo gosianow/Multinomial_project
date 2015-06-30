@@ -9,15 +9,15 @@ Sys.setenv("R_TESTS"="") # needed for R CMD check; thanks for the tip, Hadley
 
 
 
-## R30 CMD build DM
+## R31 CMD build DM
 system(paste(R, "CMD build DM"))
 
 
-## R30 CMD check DM DM_1.0.tar.gz
+## R31 CMD check DM 
 # system(paste(R, "CMD check DM_1.0.tar.gz"))
 
 
-## R30 CMD INSTALL DM DM_1.0.tar.gz
+## R31 CMD INSTALL DM 
 system(paste(R, "CMD INSTALL DM_0.1.5.tar.gz"))
 
 
