@@ -1,0 +1,13 @@
+Package: DM
+Type: Package
+Title: What the package does (short line)
+Version: 0.1.4
+Date: 2015-05-12
+Author: Malgorzata Nowicka, Mark Robinson
+Maintainer: Malgorzata Nowicka <gosia.nowicka@uzh.ch>
+Description: More about what it does (maybe more than one line)
+License: GPL (>= 2)
+Depends: parallel
+Imports: Rcpp (>= 0.11.3), edgeR
+LinkingTo: Rcpp
+Packaged: 2015-05-21 12:46:49 UTC; gosia
