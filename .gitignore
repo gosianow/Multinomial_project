@@ -6,6 +6,7 @@
 
 # R data files from past sessions
 .Rdata
+.Rcheck
 
 # RStudio files
 .Rproj.user/
@@ -18,6 +19,7 @@ package_devel/DM*
 
 ._*
 .DS*
+.tar.gz
 
 
 
