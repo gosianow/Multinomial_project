@@ -1,11 +1,12 @@
 # History files
-.Rhistory
+*.Rhistory
 
 # Example code in package build process
 *-Ex.R
 
 # R data files from past sessions
-.Rdata
+*.Rdata
+*.Rcheck
 
 # RStudio files
 .Rproj.user/
@@ -14,12 +15,10 @@
 
 package_devel/DM*
 package_devel/DM.Rcheck/
-
 ##
 
-._*
+*._*
 .DS*
 *.tar.gz
 
-
-.Rproj.user
+*.Rproj.user
