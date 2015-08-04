@@ -12,13 +12,14 @@
 *.Rproj
 ##
 
-DM_package_devel/DM*
+package_devel/DM*
+package_devel/DM.Rcheck/
 
 ##
 
 ._*
 .DS*
-
+*.tar.gz
 
 
 .Rproj.user

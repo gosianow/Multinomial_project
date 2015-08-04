@@ -12,12 +12,12 @@
 
 ##############################################################################################################
 
-setwd("/home/Shared/data/seq/GEUVADIS/")
+setwd("/home/Shared/data/seq/geuvadis/")
 
 library(DM)
 
 library(limma)
-source("/home/gosia/R/R_Multinomial_project/DM_package_devel/0_my_printHead.R")
+source("/home/gosia/R/multinomial_project/package_devel/0_my_printHead.R")
 
 library(edgeR)
 
@@ -27,7 +27,7 @@ library(gridExtra)
 library(RColorBrewer)
 
 
-Rfiles <- list.files("/home/gosia/R/R_Multinomial_project/DM_package_devel/DM_0.1.4/R/", full.names=TRUE)
+Rfiles <- list.files("/home/gosia/R/multinomial_project/package_devel/DM_0.1.4/R/", full.names=TRUE)
 for(i in Rfiles) source(i)
 
 library(pryr)
@@ -56,7 +56,7 @@ load(paste0("DM_0_1_2_Data/dgeSQTL_clean.RData"))
 
 
 ######### run on DM_0_1_5 data
-out.dir <- "DM_0_1_4_sQTL_analysis/Results_Data_DM_0_1_5_TagwiseDisp_gridNone_tol12_constrOptim2G/"
+out.dir <- "dm_0_1_4_analysis/Results_Data_DM_0_1_5_TagwiseDisp_gridNone_tol12_constrOptim2G/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 # load(paste0("DM_0_1_5_Data/dgeSQTL.RData"))
@@ -83,6 +83,16 @@ dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 
 load(paste0("DM_0_1_5_Data/dgeSQTL_DM_0_1_4.RData"))
+
+
+load(paste0(out.dir, "dgeSQTL_chr1.RData"))
+
+object.size(dgeSQTL$counts)
+
+object.size(dgeSQTL$fit)
+object.size(dgeSQTL$fit.null)
+
+
 
 
 

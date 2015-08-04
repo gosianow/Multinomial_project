@@ -4,7 +4,7 @@
 # Compare the speed of bplapply and bpmapply 
 # Updated 5 June 2015
 # Use constrOptim for testing the speed
-
+# Check the MEMORY usage when adding elements to the list
 
 ##############################################################################################################
 # use BiocParallel

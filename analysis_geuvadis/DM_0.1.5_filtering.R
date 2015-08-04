@@ -5,7 +5,7 @@
 
 ##############################################################################################################
 
-setwd("/home/Shared/data/seq/GEUVADIS/")
+setwd("/home/Shared/data/seq/geuvadis/")
 
 library(GenomicRanges)
 
@@ -132,7 +132,7 @@ names(gene_rngs) <- gene_rngs$name
 
 genes_keep <- names(counts)
 
-genic_window=5e3
+genic_window = 5e3
 
 gene_rngs <- gene_rngs[gene_rngs$name %in% genes_keep]
 gene_rngs <- gene_rngs[seqnames(gene_rngs) %in% 1:22]
@@ -170,18 +170,18 @@ genotypesList <- bplapply(1:22, function(chr){
   s <- subjectHits(variantMatch)
   
   genotypes <- split.data.frame(genotypes[s, ], names(gene_rngs_chr)[q], drop = TRUE)
-
+  
   geneList <- intersect(names(genotypes), names(counts_chr))
   
   
   genotypes2keep <- lapply(geneList, function(gene){
-  
+    
     # gene <- "ENSG00000105341.11"
     # print(gene)
     
     counts_gene = counts_chr[[gene]]
     genotypes_gene = genotypes[[gene]]
-
+    
     
     ## NA for samples with non expressed genes and missing genotype
     genotypes_gene[, is.na(counts_gene[1,])] <- NA
@@ -211,9 +211,9 @@ genotypesList <- bplapply(1:22, function(chr){
       if(is.list(genotypes2keep_gene))
         genotypes2keep_gene <- do.call(rbind, genotypes2keep_gene)
       else
-      genotypes2keep_gene <- t(genotypes2keep_gene)
+        genotypes2keep_gene <- t(genotypes2keep_gene)
     }
-      
+    
     return(genotypes2keep_gene)
     
   })
