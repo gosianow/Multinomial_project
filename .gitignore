@@ -22,3 +22,4 @@ package_devel/DM.Rcheck/
 *.tar.gz
 
 *.Rproj.user
+.Rproj.user

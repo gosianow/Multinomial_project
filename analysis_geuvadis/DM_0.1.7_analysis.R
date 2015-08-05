@@ -125,6 +125,10 @@ data_disp <- dmSQTLdispersion(data, mean_expression = TRUE, common_dispersion = 
 
 
 
+
+save(data_disp, file = paste0(out_dir, "data_disp.RData"))
+
+
 dmSQTLplotDispersion(data_disp, out_dir = out_dir)
 
 
