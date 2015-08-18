@@ -13,8 +13,9 @@
 *.Rproj
 ##
 
-package_devel/DM*
-package_devel/DM.Rcheck/
+package_devel/*
+!package_devel/*.R
+
 ##
 
 *._*
