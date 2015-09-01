@@ -64,6 +64,8 @@ TPRvsFDR_perMethod <- function(status, apvs, FDR.cut.off=c(0.01, 0.05, 0.1), pch
     FDR[i] <- FP/(FP+TP)
     
   }  
+  
+  
   tf <- cbind( FDR , TPR)
   
   bg <- rep(col,q)

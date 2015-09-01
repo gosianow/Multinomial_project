@@ -1,6 +1,6 @@
 # BioC Devel
 
-# Created 25 Aug 2015
+# Created 26 Aug 2015
 
 
 # library(devtools); library(GenomicRanges); library(BiocParallel); library(edgeR)
@@ -18,6 +18,12 @@ setwd("/home/Shared/tmp/gosia/")
 
 library(DM)
 
+load("d.Rdata")
+
+load("ds.Rdata")
+
+
+
 load("first_hurdle.Rdata")
 
 
@@ -30,30 +36,40 @@ load("first_hurdle.Rdata")
 
 d <- dmDSdata(counts = as.matrix(countsw), gene_id_counts = lookup$gene_id[m], feature_id_counts = rownames(countsw), sample_id = colnames(countsw), group = as.factor(df$condition))
 
-system.time(d <- dmDSfilter(d))
+
+d <- dmFilter(d)
+
+
+# save(d, file = "d.Rdata")
+
+plotData(d, out_dir = "./")
+
+
+plot(d, out_dir = "./")
+
+
+ds <- dmDispersion(d, verbose = TRUE, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
+
+
+# save(ds, file = "ds.Rdata")
+
+plotDispersion(ds, out_dir = "./")
 
 
 
+df <- dmFit(ds, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
 
-ds <- dmDSdispersion(d, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
-
-
-dmDSplotDispersion(ds, out_dir = "./")
+plotFit(df, gene_id = "ENSG00000004059", plot_type = "barplot", out_dir = "./")
 
 
 
-df <- dmDSfit(ds, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
+pairwise_comparison <- matrix(c(1, 2, 2, 3), nrow = 2, byrow = TRUE)
 
+dt <- dmLRT(df, pairwise_comparison = pairwise_comparison, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
 
-dmDSplotFit(df, gene_id = "ENSG00000203685", plot_type = "barplot", out_dir = "./")
+plotLRT(dt, out_dir = "./")
 
-
-# save(df, file = "df.Rdata")
-
-dt <- dmDStest(df)
-
-
-head(dt@table)
+head(results(dt))
 
 
 ########################################################
@@ -113,38 +129,42 @@ d <- dmSQTLdataFromRanges(counts, gene_id_counts, feature_id_counts, gene_ranges
 all(names(d@counts) == names(d@genotypes))
 
 
-d <- dmSQTLfilter(d, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
+d <- dmFilter(d, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
 
-dmSQTLplotData(d, "~/")
+
+plotData(d, "~/")
 
 
 # save(d, file = "data-raw/d.Rdata")
 
 
 
-ds <- dmSQTLdispersion(d, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
+ds <- dmDispersion(d, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
 
 
-dmSQTLplotDispersion(ds, "~/")
+# save(ds, file = "data-raw/ds.Rdata")
 
 
-df <- dmSQTLfit(ds, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
+plotDispersion(ds, "~/")
+
+
+df <- dmFit(ds, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
 
 
 snp_id <- "snp_19_54704760"
 gene_id <- "ENSG00000170889.9"
 
-dmSQTLplotFit(df, gene_id, snp_id, out_dir = "~/")
+plotFit(df, gene_id, snp_id, out_dir = "~/")
 
 
 
-dt <- dmSQTLtest(df, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
+dt <- dmLRT(df, BPPARAM = BiocParallel::MulticoreParam(workers = 10))
 
 
-dmSQTLplotTest(dt, out_dir = "~/")
+plotLRT(dt, out_dir = "~/")
 
 
-dmSQTLplotFit(dt, gene_id, snp_id, out_dir = "~/")
+plotFit(dt, gene_id, snp_id, out_dir = "~/", plot_type = "boxplot2")
 
 
 

@@ -77,49 +77,6 @@ simulation_details <- simulation_details[, c("gene_id", "transcript_id", "expect
 
 
 
-results <- list()
-
-####################### results produced by Charlotte
-
-
-rt <- read.table(paste0("4_results/dexseq_", count.method, ".txt"), header = T, as.is = TRUE)
-head(rt)
-
-colnames(rt) <- c("gene_id",  paste0("adjPValue.",count.method,"_dexseq"))
-
-head(rt)
-results[[paste0( count.method, "_dexseq" )]] <- rt
-
-
-
-
-####################### DM_0.1.5 results on htseq counts and bitseq 
-
-
-
-res.path <- paste0(DM_out, count.method, "/", filter.method, "/")
-
-files <- list.files(path = res.path, pattern = "_results.xls" )
-res  <- gsub(pattern = "_results.xls", replacement = "", x = files)
-res 
-
-for(i in 1:length(files)){
-  # i = 1
-  
-  rt <- read.table(paste0(res.path, files[i]), header = TRUE, as.is = TRUE)
-  head(rt)
-  
-  rt <- rt[,c("geneID", "pValue" ,"FDR")]
-  
-  colnames(rt) <- c("gene_id", paste0("PValue.",res[i]), paste0("adjPValue.",res[i]))
-  head(rt)
-  
-  results[[res[i]]] <- rt  
-  
-}
-
-
-names(results)
 
 results <- Reduce(function(...) merge(..., by = "gene_id", all=TRUE, sort = FALSE), results)
 
