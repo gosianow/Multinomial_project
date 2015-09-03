@@ -89,6 +89,7 @@ sqtl.seeker <- function(tre.df,genotype.f, gene.loc, genic.window=5e3, min.nb.ex
         ## Load genotype
         gr.gene = with(subset(gene.loc, geneId==tre.gene$geneId[1]),
             GenomicRanges::GRanges(chr, IRanges::IRanges(start, end)))
+        
         gr.gene = GenomicRanges::resize(gr.gene, GenomicRanges::width(gr.gene)+2*genic.window, fix="center")
         if(length(gr.gene)>0){
             ## Remove samples with non expressed genes
