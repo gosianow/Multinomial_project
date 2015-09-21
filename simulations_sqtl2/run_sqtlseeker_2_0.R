@@ -3,10 +3,10 @@
 # Run sQTLseekeR 2.0 analysis 
 
 # Created 3 Sep 2015
-# Modyfied 3 Sep 2015
+# Modyfied 13 Sep 2015
 
 
-setwd("/home/gosia/multinomial_project/simulations_sqtl1_hsapiens_noDE_noNull")
+setwd("/home/gosia/multinomial_project/simulations_sqtl2_hsapiens_noDE_noNull")
 
 
 ################################################################################
@@ -23,9 +23,11 @@ dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 ### Prepare expression file (use expected counts)
 ##############################################
 
-sim_det <- simulation_details <- read.table("3_truth/simulation_details.txt", header = TRUE, sep = "\t", as.is = TRUE)
+# sim_det <- simulation_details <- read.table("3_truth/simulation_details.txt", header = TRUE, sep = "\t", as.is = TRUE)
+# save(simulation_details, file = "3_truth/simulation_details.Rdata")
 
-save(simulation_details, file = "3_truth/simulation_details.Rdata")
+load("3_truth/simulation_details.Rdata")
+sim_det <- simulation_details
 
 
 counts <- sim_det[, c(2, 1, grep("isoformCount", colnames(sim_det)))]
@@ -34,16 +36,16 @@ ns <- length(grep("isoformCount", colnames(sim_det)))
 
 colnames(counts) <- c("trId", "geneId", paste0("s", 1:ns))
 
+head(counts)
 
 write.table(counts, paste0(data_dir,"counts.txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
-
-counts <- read.table(paste0(data_dir,"counts.txt"), as.is = TRUE, header = TRUE)
 
 ##############################################
 ### Prepare BED file with gene location
 ##############################################
 
+# counts <- read.table(paste0(data_dir,"counts.txt"), as.is = TRUE, header = TRUE)
 
 genes <- unique(counts$geneId)
 ng <- length(genes)
@@ -82,16 +84,19 @@ library(ggplot2)
 library(GenomicRanges)
 
 
-results_dir <- "sqtlseeker_2_0/results/"
-dir.create(results_dir, showWarnings = FALSE, recursive = TRUE)
+# results_dir <- "sqtlseeker_2_0/results/"
+# dir.create(results_dir, showWarnings = FALSE, recursive = TRUE)
 
+
+results_dir <- "sqtlseeker_2_0/results_min_dispersion001/"
+dir.create(results_dir, showWarnings = FALSE, recursive = TRUE)
 
 
 
 ## 1) Index the genotype file (if not done externally before)
 
-# genotypes_file <- paste0(data_dir,"genotypes.tsv")
-# genotypes_index_file <- index.genotype(genotypes_file)
+genotypes_file <- paste0(data_dir,"genotypes.tsv")
+genotypes_index_file <- index.genotype(genotypes_file)
 
 genotypes_index_file <- paste0(data_dir, "genotypes.tsv.bgz")
 
@@ -99,12 +104,13 @@ genotypes_index_file <- paste0(data_dir, "genotypes.tsv.bgz")
 ## 2) Prepare transcript expression
 
 ### paly with min.dispersion
-tre_df <- prepare.trans.exp(te.df = counts, min.transcript.exp = 1, min.gene.exp = 1, min.dispersion = 0)
+tre_df <- prepare.trans.exp(te.df = counts, min.transcript.exp = 1, min.gene.exp = 1, min.dispersion = 0.01)
 
 write.table(tre_df, paste0(results_dir, "tre_df_seeker.tsv"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
+
 ### read in the results to have right levels for geneId and trId
-tre_df <- read.table(paste0(results_dir, "tre_df_seeker.tsv"), as.is = TRUE, header = TRUE) 
+# tre_df <- read.table(paste0(results_dir, "tre_df_seeker.tsv"), as.is = TRUE, header = TRUE) 
 
 
 
@@ -183,7 +189,7 @@ write.table(sqtls, paste0(results_dir, "sqtls_fdr05.txt"), quote = FALSE, sep = 
 
 
 ################################################################################
-### Run sQTLSeekeR
+### Check the truth 
 ################################################################################
 
 
@@ -194,8 +200,10 @@ genes_ds <- truth[truth$ds_status == 1, "gene"]
 table(results$geneId %in% genes_ds)
 
 
-truth2 <- sim_det[, c("gene_id", "transcript_id", "gene_ds_status", "transcript_ds_status")]
 
+
+
+truth2 <- sim_det[, c("gene_id", "transcript_id", "gene_ds_status", "transcript_ds_status")]
 
 ds_info <- truth2[truth2$transcript_ds_status == 1, c(1, 2)]
 colnames(ds_info) <- c("gene_id", "feature_id")
@@ -210,10 +218,10 @@ colnames(info) <- c("gene_id", "feature_id")
 table(info$feature_id %in% ds_info$feature_id)
 table(unique(info$gene_id) %in% unique(ds_info$gene_id))
 
-out_dir <- results_dir
 
+source("/home/gosia/R/multinomial_project/package_devel/DM/R/dmDS_plotDataInfo.R")
 
-dmDS_plotDataInfo(info, ds_info, out_dir = out_dir)
+dmDS_plotDataInfo(info, ds_info, out_dir = results_dir)
 
 
 

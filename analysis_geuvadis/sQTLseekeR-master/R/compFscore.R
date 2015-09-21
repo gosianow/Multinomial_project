@@ -11,7 +11,7 @@
 ##' \item{tr.first, tr.second}{the two transcripts that change the most.}
 ##' @author Jean Monlong
 ##' @keywords internal
-compFscore <- function(geno.df, tre.dist, tre.df,svQTL=FALSE){
+compFscore <- function(geno.df, tre.dist, tre.df,svQTL=FALSE){ ### geno.df can have only one row (one snp)
   if(nrow(geno.df)>1){
     stop(geno.df$snpId[1], " SNP is duplicated in the genotype file.")
   }
@@ -22,8 +22,10 @@ compFscore <- function(geno.df, tre.dist, tre.df,svQTL=FALSE){
     tre.dist = as.dist(as.matrix(tre.dist)[non.na, non.na])
   }
   groups.snp.f = factor(as.numeric(geno.snp))
+  
   F.snp = adonis.comp(tre.dist,groups.snp.f,permutations=2,svQTL=FALSE)
   mdt = md.trans(tre.df, groups.snp.f, labels(tre.dist))
+  
   res.df = data.frame(F=F.snp,
       nb.groups=nlevels(groups.snp.f) ,
       md=mdt$md,

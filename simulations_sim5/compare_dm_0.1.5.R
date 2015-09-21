@@ -93,7 +93,7 @@ results[[paste0( count.method, "_dexseq" )]] <- rt
 
 
 
-####################### DM_0.1.5 results on htseq counts and bitseq 
+####################### DM_0.1.5 results
 
 
 

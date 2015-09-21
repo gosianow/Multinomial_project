@@ -66,6 +66,7 @@ sqtl.seeker <- function(tre.df,genotype.f, gene.loc, genic.window=5e3, min.nb.ex
     ## - more than 5 different splicing pts per genotype group
     ## Return: TRUE if snp passed, FALSE if not.
     check.genotype <- function(geno.df, tre.df){
+      
         apply(geno.df, 1, function(geno.snp){
             if(sum(as.numeric(geno.snp)==-1)>2){
                 return("Missing genotype")
@@ -75,13 +76,14 @@ sqtl.seeker <- function(tre.df,genotype.f, gene.loc, genic.window=5e3, min.nb.ex
                 return("One group of >5 samples")
             }
             nb.diff.pts = sapply(names(geno.snp.t)[geno.snp.t>1], function(geno.i){
-                nbDiffPt(tre.df[,which(geno.snp==geno.i)])
+                nbDiffPt(tre.df[,which(geno.snp==geno.i)]) ### WEIRD CALCULATION WITH PASTE...
             })
             if(sum(nb.diff.pts >= 5) < 2){
                 return("One group of >5 different splicing")
             }
             return("PASS")
         })
+        
     }
     
     analyze.gene.f <- function(tre.gene){
@@ -97,6 +99,7 @@ sqtl.seeker <- function(tre.df,genotype.f, gene.loc, genic.window=5e3, min.nb.ex
             
             res.df = data.frame()
             if(GenomicRanges::width(gr.gene)>2e4){
+              
                 gr.gene.spl = rep(gr.gene, floor(GenomicRanges::width(gr.gene)/1e4))
                 GenomicRanges::start(gr.gene.spl) = seq(GenomicRanges::start(gr.gene), GenomicRanges::end(gr.gene)-1e4,1e4)
                 GenomicRanges::end(gr.gene.spl) = seq(GenomicRanges::start(gr.gene)+1e4-1, GenomicRanges::end(gr.gene),1e4)
@@ -120,18 +123,25 @@ sqtl.seeker <- function(tre.df,genotype.f, gene.loc, genic.window=5e3, min.nb.ex
                 if(!is.null(genotype.gene)){
                     ## Focus on common samples
                     com.samples = intersect(colnames(tre.gene),colnames(genotype.gene))
+                    
                     ## Filter SNP with not enough power
                     snps.to.keep = check.genotype(genotype.gene[,com.samples], tre.gene[,com.samples])
+                    
                     if(any(snps.to.keep=="PASS")){
                         genotype.gene = genotype.gene[snps.to.keep=="PASS", ]
+                        
                         tre.dist = hellingerDist(tre.gene[,com.samples])
+                        
                         res.df = dplyr::do(dplyr::group_by(genotype.gene, snpId), compFscore(., tre.dist, tre.gene, svQTL=svQTL))
+                        
                     }
                 }
             }
             
             if(nrow(res.df)>0){
+              
                 res.df = dplyr::do(dplyr::group_by(res.df, nb.groups), compPvalue(., tre.dist, approx=approx, min.nb.ext.scores=min.nb.ext.scores, nb.perm.max=nb.perm.max))
+                
                 if(svQTL){
                     res.df = dplyr::do(dplyr::group_by(res.df, nb.groups), compPvalue(., tre.dist, svQTL=TRUE, min.nb.ext.scores=min.nb.ext.scores, nb.perm.max=nb.perm.max.svQTL))
                 }

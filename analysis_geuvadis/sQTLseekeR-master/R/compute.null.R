@@ -22,7 +22,7 @@ compute.null <- function(F.lead,dis,nb.gp,min.nb.ext.scores=1e3,nb.perm.max=1e6,
 
     ado.null <- function(dist.o,nb.null,nb.gp,svQTL=FALSE,approx=TRUE){
         nb.tot = attr(dist.o,"Size")
-        groups.f = factor(sample(1:nb.gp, nb.tot, TRUE))
+        groups.f = factor(sample(1:nb.gp, nb.tot, TRUE)) ### <- sample groups
         adonis.comp(dist.o,groups.f,permutations=nb.null,f.perms=TRUE,svQTL=svQTL,approx=approx)
     }
     
@@ -32,7 +32,7 @@ compute.null <- function(F.lead,dis,nb.gp,min.nb.ext.scores=1e3,nb.perm.max=1e6,
     while( ( pv.lead * nbP.tot < min.nb.ext.scores ) && ( nbP.tot < nb.perm.max ) ){
         nbP.new = estNbPerm(pv.lead,min.nb.ext.scores,nb.perm.max) - nbP.tot
         if(nbP.new > 0){
-            FP = c(FP, ado.null(dis,nbP.new,nb.gp,svQTL=svQTL,approx=approx))
+            FP = c(FP, ado.null(dis,nbP.new,nb.gp,svQTL=svQTL,approx=approx)) ### nbP.new is the number of permutations in adonis.comp()
             nbP.tot = nbP.tot + nbP.new
             pv.lead = (sum(FP >= F.lead) + 1) / (nbP.tot + 1)
         }

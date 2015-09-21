@@ -13,8 +13,11 @@
 ##' @keywords internal
 adonis.comp <- function(dis,groups,permutations=99,f.perms=FALSE,svQTL=FALSE,approx=TRUE){
     if(svQTL){
-        bd <- vegan::betadisper(dis, groups,type="centroid")
-        bd.perm <- permutest.betadisper(bd,control = permute::how(nperm = permutations)) 
+      
+        bd <- vegan::betadisper(dis, groups, type="centroid")
+        
+        bd.perm <- permutest.betadisper(bd, control = permute::how(nperm = permutations)) 
+        
         if(f.perms){
             return(bd.perm$f.perms)
         } else {
@@ -23,6 +26,7 @@ adonis.comp <- function(dis,groups,permutations=99,f.perms=FALSE,svQTL=FALSE,app
     } else {
         
         if(f.perms){
+          
             if(approx){
                 eigenG <- function (interdist,tol=10^-12) {
                     A <- (- 0.5) * interdist^2
@@ -53,6 +57,8 @@ adonis.comp <- function(dis,groups,permutations=99,f.perms=FALSE,svQTL=FALSE,app
                 }
 
                 return(approx.dist(dis,permutations,nlevels(groups)))
+                
+                
             } else {
                 res = vegan::adonis(dis ~ groups,permutations=permutations)
                 return(as.numeric(res$f.perms[,1]))

@@ -14,6 +14,10 @@
 
 setwd("/home/gosia/multinomial_project/simulations_sim5_drosophila_noDE_noNull")
 
+# setwd("/home/gosia/multinomial_project/simulations_sim5_hsapiens_noDE_noNull")
+
+# setwd("/home/gosia/multinomial_project/simulations_sim5_hsapiens_withDE_noNull")
+
 
 library(ggplot2)
 library(reshape2)
@@ -21,7 +25,7 @@ library(gridExtra)
 library(RColorBrewer)
 
 
-DM_out <- DM_plots_out <- "dm_0_1_5_new_ggplot_ROC_FDR/"
+DM_out <- DM_plots_out <- "dm_0_1_5_plots_gg/"
 dir.create(DM_plots_out, showWarnings=F, recursive=T)
 
 results_dm <- "dm_0_1_5/"
@@ -34,7 +38,11 @@ results_dm <- "dm_0_1_5/"
 
 count_methodList <- c("htseq", "kallisto")
 
+dexseq_resultsList <- c("dexseq_htseq_nomerge", "dexseq_kallisto")
+
 filter_methodList <- c("Filtering_DEXSeq", "Filtering_min3prop0_01min6cpm1maxNA") 
+
+
 
 split_levels <- list()
 
@@ -54,8 +62,8 @@ for(i in 1:length(count_methodList)){
 		####################### results produced by Charlotte
 
 
-		rt <- read.table(paste0("4_results/dexseq_", count_method, ".txt"), header = T, as.is = TRUE)
-		head(rt)
+		rt <- read.table(paste0("4_results/", dexseq_resultsList[i], ".txt"), header = T, as.is = TRUE)
+    head(rt)
 
 		colnames(rt) <- c("gene_id", "adj_pvalue")
 
@@ -117,6 +125,221 @@ simulation_details <- read.table("3_truth/simulation_details.txt", header = TRUE
 status <- unique(simulation_details[, c("gene_id", "gene_ds_status")])
 
 colnames(status) <- c("gene_id", "status")
+
+
+
+
+#######################################################
+# make plots
+#######################################################
+
+library(DM)
+
+
+data_TPRFDR <- DM::calculate_TPRFDR(results, status, thresholds = c(0.01, 0.05, 0.1))
+
+
+levels(split_levels$method)
+
+
+
+plot_levels <- "method"
+facet_levels <- c("counting", "filtering")
+
+plot_colors <- c("#E69F00", "#009E73", "#0072B2", "#CC79A7")
+
+
+
+
+pdf(paste0(DM_plots_out,"TPRFDR.pdf"))
+
+DM::plot_TPRFDR(data_TPRFDR, split_levels, plot_levels, facet_levels, plot_colors = plot_colors, xylim_one = FALSE)
+
+dev.off()
+
+
+
+pdf(paste0(DM_plots_out,"TPRFDR1.pdf"))
+
+DM::plot_TPRFDR(data_TPRFDR, split_levels, plot_levels, facet_levels, plot_colors = plot_colors, xylim_one = TRUE)
+
+dev.off()
+
+
+
+
+##############################################################################################################
+# Plot with all organisms
+##############################################################################################################
+
+
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+library(RColorBrewer)
+
+
+results_dm <- "dm_0_1_5/"
+
+
+##############################################################################################################
+# ->>>>>> load results
+##############################################################################################################
+
+
+count_methodList <- c("htseq", "kallisto")
+
+dexseq_resultsList <- c("dexseq_htseq_nomerge", "dexseq_kallisto")
+
+organismList <- c("Drosophila", "H. Sapiens", "H. Sapiens DE") 
+
+wd <- c("/home/gosia/multinomial_project/simulations_sim5_drosophila_noDE_noNull", "/home/gosia/multinomial_project/simulations_sim5_hsapiens_noDE_noNull", "/home/gosia/multinomial_project/simulations_sim5_hsapiens_withDE_noNull")
+
+
+
+
+split_levels <- list()
+
+results <- list()
+
+counter <- 1
+
+for(i in 1:length(count_methodList)){
+  # i = 1
+  
+  for(j in 1:length(wd)){
+    # j = 1
+    
+    count_method <- count_methodList[i]
+    filter_method <- "Filtering_min3prop0_01min6cpm1maxNA"
+    organism <- organismList[j]
+    
+    setwd(wd[j])
+    
+    
+    ####################### results produced by Charlotte
+
+
+    rt <- read.table(paste0("4_results/", dexseq_resultsList[i], ".txt"), header = T, as.is = TRUE)
+    head(rt)
+
+    colnames(rt) <- c("gene_id", "adj_pvalue")
+
+    results[[counter]] <- rt
+    split_levels[[counter]] <- data.frame(method = "dexseq", counting = count_method, filtering = filter_method, organism = organism)
+    
+    counter <- counter + 1
+
+
+    ####################### DM_0.1.5 results on htseq counts and bitseq 
+
+    res_path <- paste0(results_dm, count_method, "/", filter_method, "/")
+
+    files <- list.files(path = res_path, pattern = "_results.xls", full.names = TRUE)
+    
+    print(files)
+    
+    res  <- gsub(pattern = "_results.xls", replacement = "", x = basename(files))
+    res  <- gsub(pattern = paste0(count_method, "_"), replacement = "", res)
+    res  <- gsub(pattern = "constrOptim2G_", replacement = "", res)
+    
+    res 
+
+    for(k in 1:length(files)){
+      # k = 1
+      
+      # rt <- read.table(paste0(res_path, files[k]), header = TRUE, as.is = TRUE)
+      rt <- read.table(files[k], header = TRUE, as.is = TRUE)
+      
+      head(rt)
+      
+      rt <- rt[,c("geneID", "pValue" ,"FDR")]
+      
+      colnames(rt) <- c("gene_id", "pvalue", "adj_pvalue")
+      head(rt)
+      
+      results[[counter]] <- rt  
+      split_levels[[counter]] <- data.frame(method = res[k], counting = count_method, filtering = filter_method, organism = organism)
+      
+      counter <- counter + 1
+      
+      
+    }
+    
+  }
+  
+}
+
+
+split_levels <- do.call(rbind, split_levels)
+
+#######################################################
+# load simulation info
+#######################################################
+
+
+library(DM)
+
+data_TPRFDR <- list()
+
+
+for(j in 1:length(wd)){
+  
+  setwd(wd[j])
+  
+  simulation_details <- read.table("3_truth/simulation_details.txt", header = TRUE, as.is = TRUE)
+
+  status <- unique(simulation_details[, c("gene_id", "gene_ds_status")])
+
+  colnames(status) <- c("gene_id", "status")
+  
+  inds <- which(split_levels$organism == organismList[j])
+  
+  data_TPRFDR[inds] <- DM::calculate_TPRFDR(results[inds], status, thresholds = c(0.01, 0.05, 0.1))
+
+  
+}
+
+
+
+
+
+
+#######################################################
+# make plots
+#######################################################
+
+
+
+levels(split_levels$method)
+
+
+
+plot_levels <- "method"
+facet_levels <- c("organism", "counting")
+
+plot_colors <- c("#E69F00", "#009E73", "#0072B2", "#CC79A7")
+
+
+
+
+pdf(paste0("/home/gosia/multinomial_project/TPRFDR.pdf"), 10.5, 7)
+
+plot_TPRFDR(data_TPRFDR, split_levels, plot_levels, facet_levels, plot_colors = plot_colors, xylim_one = FALSE)
+
+dev.off()
+
+
+
+pdf(paste0("/home/gosia/multinomial_project/TPRFDR1.pdf"), 10.5, 7)
+
+plot_TPRFDR(data_TPRFDR, split_levels, plot_levels, facet_levels, plot_colors = plot_colors, xylim_one = TRUE)
+
+dev.off()
+
+
+
+
 
 
 
@@ -188,27 +411,6 @@ data_ROCx <- calculate_ROCx(results, status)
 
 
 
-colorb <- function(n){
-  
-	clrs <- c("dodgerblue3", "maroon2",  "forestgreen",  "blueviolet", "firebrick3", "deepskyblue",  "orchid2", "chartreuse3", "tomato" , "slateblue1")
-  
-	nc <- length(clrs)
-  
-	if(n > nc)
-		clrs <- rep(clrs, ceiling(n/nc))
-    
-	clrs[1:n]
-  
-	# colorRampPalette(clrs)(n)
-
-}
-
-
-
-
-plot_levels <- "method"
-facet_levels <- c("counting", "filtering")
-plot_colors <- colorb(4)
 
 
 
@@ -270,8 +472,29 @@ plot_ROCx <- function(data_ROCx, split_levels, plot_levels, facet_levels, plot_c
 }
 
 
+colorb <- function(n){
+  
+  clrs <- c("dodgerblue3", "maroon2",  "forestgreen",  "blueviolet", "firebrick3", "deepskyblue",  "orchid2", "chartreuse3", "tomato" , "slateblue1")
+  
+  nc <- length(clrs)
+  
+  if(n > nc)
+    clrs <- rep(clrs, ceiling(n/nc))
+    
+  clrs[1:n]
+  
+  # colorRampPalette(clrs)(n)
 
-pdf("./ROC.pdf")
+}
+
+
+
+plot_levels <- "method"
+facet_levels <- c("counting", "filtering")
+plot_colors <- colorb(4)
+
+
+pdf(paste0(DM_plots_out,"ROC.pdf"))
  
 plot_ROCx(data_ROCx, split_levels, plot_levels, facet_levels, plot_colors = plot_colors, xylim_one = FALSE)
 
@@ -346,11 +569,8 @@ calculate_TPRFDR <- function(results, status, thresholds = c(0.01, 0.05, 0.1)){
 
 
 
-data_TPRFDR <- calculate_TPRFDR(results, status, thresholds = c(0.01, 0.05, 0.1))
 
-
-
-plot_TPRFDR <- function(data_TPRFDR, split_levels, plot_levels, facet_levels, plot_colors = NULL, xylim_one = TRUE){
+plot_TPRFDR <- function(data_TPRFDR, split_levels, plot_levels, facet_levels, plot_colors = NULL, xylim_one = FALSE){
   
 	split_levels <- split_levels[, c(plot_levels, facet_levels), drop = FALSE]
   
@@ -369,11 +589,11 @@ plot_TPRFDR <- function(data_TPRFDR, split_levels, plot_levels, facet_levels, pl
   
   TPRFDR$white <- ifelse(TPRFDR$FDR <= TPRFDR$threshold, NA, TPRFDR$TPR)
   
-  pointsize <- 4
+  pointsize <- 2.5
 
 	ggp <- ggplot(data = TPRFDR, aes_string(x = "FDR", y = "TPR", group = plot_levels, colour = plot_levels)) +
 	theme_bw() +
-	xlab("Achieved FDR") +
+	xlab("FDR") +
 	geom_line(size = 1.5, na.rm=TRUE) +
 	geom_vline(aes(xintercept = threshold), linetype = "dashed") + 
 	geom_point(size = pointsize + 1, shape = 19, na.rm=TRUE) + 
@@ -397,29 +617,67 @@ plot_TPRFDR <- function(data_TPRFDR, split_levels, plot_levels, facet_levels, pl
 		ggp <- ggp + facet_grid(reformulate(facet_levels[1], facet_levels[2]))
 
     
-	pdf("./TPRFDR.pdf")
+	# pdf("./TPRFDR.pdf")
    
 	print(ggp)
 
-	dev.off()
+	# dev.off()
   
 
 }
 
 
 
-
-
-
-
-pdf("./TPRFDR.pdf")
+colorb <- function(n){
   
+  clrs <- c("dodgerblue3", "maroon2",  "forestgreen",  "blueviolet", "firebrick3", "deepskyblue",  "orchid2", "chartreuse3", "tomato" , "slateblue1")
+  
+  nc <- length(clrs)
+  
+  if(n > nc)
+    clrs <- rep(clrs, ceiling(n/nc))
+    
+  clrs[1:n]
+  
+  # colorRampPalette(clrs)(n)
+
+}
+
+
+
+colorb <- function(n) {
+  colorRampPalette(c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"))(n)
+}
+
+
+plot_levels <- "method"
+facet_levels <- c("counting", "filtering")
+
+plot_colors <- c("#E69F00", "#009E73", "#0072B2", "#CC79A7")
+
+levels(split_levels$method)
+
+
+
+
+
+data_TPRFDR <- calculate_TPRFDR(results, status, thresholds = c(0.01, 0.05, 0.1))
+
+
+
+pdf(paste0(DM_plots_out,"TPRFDR.pdf"))
+
 plot_TPRFDR(data_TPRFDR, split_levels, plot_levels, facet_levels, plot_colors = plot_colors, xylim_one = FALSE)
 
 dev.off()
 
 
 
+pdf(paste0(DM_plots_out,"TPRFDR1.pdf"))
+
+plot_TPRFDR(data_TPRFDR, split_levels, plot_levels, facet_levels, plot_colors = plot_colors, xylim_one = TRUE)
+
+dev.off()
 
 
 
