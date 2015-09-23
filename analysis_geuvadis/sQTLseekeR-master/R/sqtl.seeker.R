@@ -68,7 +68,7 @@ sqtl.seeker <- function(tre.df,genotype.f, gene.loc, genic.window=5e3, min.nb.ex
     check.genotype <- function(geno.df, tre.df){
       
         apply(geno.df, 1, function(geno.snp){
-            if(sum(as.numeric(geno.snp)==-1)>2){
+            if(sum(as.numeric(geno.snp)==-1)>2){ ### MAX 2 missing genotypes
                 return("Missing genotype")
             } 
             geno.snp.t = table(geno.snp[geno.snp>-1])
@@ -119,6 +119,8 @@ sqtl.seeker <- function(tre.df,genotype.f, gene.loc, genic.window=5e3, min.nb.ex
                     }
                 }
             } else {
+              
+              
                 genotype.gene = read.bedix(genotype.f, gr.gene)
                 if(!is.null(genotype.gene)){
                     ## Focus on common samples
@@ -133,6 +135,8 @@ sqtl.seeker <- function(tre.df,genotype.f, gene.loc, genic.window=5e3, min.nb.ex
                         tre.dist = hellingerDist(tre.gene[,com.samples])
                         
                         res.df = dplyr::do(dplyr::group_by(genotype.gene, snpId), compFscore(., tre.dist, tre.gene, svQTL=svQTL))
+                        
+                        
                         
                     }
                 }
