@@ -4,11 +4,11 @@ gamma0 = 10
 y = matrix(c(0, 0, 35, 70), nrow = 2)
 pi = 0.3
 
-dm_lik(pi, gamma0, y)
-dm_likG(pi, gamma0, y)
+DM:::dm_lik(pi, gamma0, y)
+DM:::dm_likG(pi, gamma0, y)
 
-dm_score(pi, gamma0, y)
-dm_scoreG(pi, gamma0, y)
+DM:::dm_score(pi, gamma0, y)
+DM:::dm_scoreG(pi, gamma0, y)
 
 
 
@@ -17,11 +17,11 @@ gamma0 = 10
 y = matrix(c(35, 70), nrow = 2)
 pi = 0.3
 
-dm_lik(pi, gamma0, y)
-dm_likG(pi, gamma0, y)
+DM:::dm_lik(pi, gamma0, y)
+DM:::dm_likG(pi, gamma0, y)
 
-dm_score(pi, gamma0, y)
-dm_scoreG(pi, gamma0, y)
+DM:::dm_score(pi, gamma0, y)
+DM:::dm_scoreG(pi, gamma0, y)
 
 
 
@@ -30,8 +30,8 @@ gamma0 = 10
 y = matrix(c(35, 70, 100, 100), nrow = 2)
 pi = 0.3
 
-dm_lik(pi, gamma0, y)
-dm_likG(pi, gamma0, y)
+DM:::dm_lik(pi, gamma0, y)
+DM:::dm_likG(pi, gamma0, y)
 
 
 
@@ -40,8 +40,8 @@ gamma0 = 10
 y = matrix(c(0, 0, 0, 70), nrow = 2)
 pi = 0.3
 
-dm_lik(pi, gamma0, y)
-dm_likG(pi, gamma0, y)
+DM:::dm_lik(pi, gamma0, y)
+DM:::dm_likG(pi, gamma0, y)
 
 dm_score(pi, gamma0, y)
 dm_scoreG(pi, gamma0, y)
@@ -64,8 +64,8 @@ gamma0 = 10
 y = matrix(c(1, 100, 1, 200), nrow = 2)
 pi = 0.0001
 
-dm_lik(pi, gamma0, y)
-dm_likG(pi, gamma0, y)
+DM:::dm_lik(pi, gamma0, y)
+DM:::dm_likG(pi, gamma0, y)
 
 dm_score(pi, gamma0, y)
 dm_scoreG(pi, gamma0, y)

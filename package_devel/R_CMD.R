@@ -1,12 +1,12 @@
-### R CMD build & R CMD check
+################################################################################
+### R CMD build & R CMD check from R
+################################################################################
 
-setwd("/home/gosia/R/R_Multinomial_project/DM_package_devel/")
+setwd("/home/gosia/R/multinomial_project/package_devel/")
 
 R <- shQuote(file.path(R.home(component="bin"), "R"))
 
 Sys.setenv("R_TESTS"="") # needed for R CMD check; thanks for the tip, Hadley
-
-
 
 
 ## R31 CMD build DM
@@ -22,5 +22,24 @@ system(paste(R, "CMD INSTALL DM_0.1.5.tar.gz"))
 
 
 
+################################################################################
+### R CMD build & R CMD check from terminal 
+################################################################################
+
+# cd R/multinomial_project/package_devel
+
+# R CMD build --no-build-vignettes DM
+
+# R CMD INSTALL DM_0.2.5.tar.gz
 
 
+### Inportant: use tar.gz thwn it does not contail files from .buildignore
+
+# R CMD check --no-build-vignettes DM_0.2.5.tar.gz
+
+# R CMD BiocCheck DM_0.2.5.tar.gz
+
+
+
+
+# R CMD build . && R CMD check *tar.gz && R CMD BiocCheck *tar.gz

@@ -185,7 +185,7 @@ ggp2 <- ggplot(data = df, aes(x = nr_snps, y = fraction)) +
   geom_point(alpha = 0.5, size = 1.5) +
   
   
-pdf(paste0(out_dir, "chr",chr, "_", "nr_snps_unique.pdf"))
+  pdf(paste0(out_dir, "chr",chr, "_", "nr_snps_unique.pdf"))
 
 print(ggp)
 print(ggp2)
@@ -226,7 +226,7 @@ ggp2 <- ggplot(data = df, aes(x = nr_snps, y = fraction)) +
   geom_point(alpha = 0.5, size = 1.5) +
   
   
-pdf(paste0(out_dir, "chr",chr, "_filtered_", "nr_snps_unique.pdf"))
+  pdf(paste0(out_dir, "chr",chr, "_filtered_", "nr_snps_unique.pdf"))
 
 print(ggp)
 print(ggp2)
@@ -252,9 +252,9 @@ load("first_hurdle.Rdata")
 
 
 
-### Source all R files in DM package
-Rfiles <- list.files("/home/gosia/R/multinomial_project/package_devel/DM/R/", full.names=TRUE)
-for(i in 1:length(Rfiles)) source(Rfiles[i])
+# ### Source all R files in DM package
+# Rfiles <- list.files("/home/gosia/R/multinomial_project/package_devel/DM/R/", full.names=TRUE)
+# for(i in 1:length(Rfiles)) source(Rfiles[i])
 
 
 

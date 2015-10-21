@@ -1,16 +1,17 @@
 # BioC 3.0
 # Created 9 Jan 2014
-# Modyfied 9 Jan 2014
+
+# Updated 9 Oct 2015
 
 
-setwd("/home/Shared/data/seq/GEUVADIS/")
+setwd("/home/Shared/data/seq/geuvadis/")
 
 
 ##################################################################################
 ### Prepare data 
 ##################################################################################
 
-out.dir <- "Data/"
+out.dir <- "data/"
 dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 
 
@@ -19,7 +20,7 @@ dir.create(out.dir, showWarnings = FALSE, recursive = TRUE)
 library(GenomicRanges)
 library(rtracklayer)
 
-gtfFile <- "/home/Shared/data/annotation/Human/gencode/gencode.v12.annotation.gtf"
+gtfFile <- "geuvadis_annotation/gencode.v12.annotation.gtf"
 
 gtf0 <- import(gtfFile)
 
