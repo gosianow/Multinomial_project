@@ -8,7 +8,7 @@
 
 
 
-setwd("/home/Shared/data/seq/Kim_adenocarcinoma/")
+setwd("/home/Shared/data/seq/kim_adenocarcinoma/")
 
 
 metadata <- read.table("metadata/Malgorzata Nowicka2014-11-04GSE37764.csv", stringsAsFactors=F, sep=",", header=T) 
@@ -74,7 +74,7 @@ for (i in 1:nrow(metadata)){
 # download sra files
 ##############################################################################
 
-setwd("/home/Shared/data/seq/Kim_adenocarcinoma/")
+setwd("/home/Shared/data/seq/kim_adenocarcinoma/")
 
 out.dir <- "1_reads/fastq/"
 dir.create(out.dir)
@@ -82,7 +82,7 @@ dir.create(out.dir)
 
 sri <- read.table("3_metadata/SraRunInfo.csv", stringsAsFactors = F, sep = ",",
     header = T)
-		
+    
 keep <- grep(" RNA-seq", sri$LibraryName)
 sri <- sri[keep, ]
 
@@ -95,7 +95,7 @@ files.sra <- paste(out.dir, basename(download_path), sep = "")
 
 
 for (i in 1:length(files.sra)) 
-	download.file(download_path[i], files.sra[i])
+  download.file(download_path[i], files.sra[i])
 
 
 

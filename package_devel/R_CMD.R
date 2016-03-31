@@ -28,18 +28,30 @@ system(paste(R, "CMD INSTALL DM_0.1.5.tar.gz"))
 
 # cd R/multinomial_project/package_devel
 
-# R CMD build --no-build-vignettes DM
+# R CMD build --no-build-vignettes DRIMSeq
 
-# R CMD INSTALL DM_0.2.5.tar.gz
+# R CMD INSTALL DRIMSeq_0.3.1.tar.gz
 
 
 ### Inportant: use tar.gz thwn it does not contail files from .buildignore
 
-# R CMD check --no-build-vignettes DM_0.2.5.tar.gz
+# R CMD check --no-build-vignettes DRIMSeq_0.3.1.tar.gz
 
-# R CMD BiocCheck DM_0.2.5.tar.gz
+# R CMD BiocCheck DRIMSeq_0.3.1.tar.gz
 
 
 
 
 # R CMD build . && R CMD check *tar.gz && R CMD BiocCheck *tar.gz
+
+################################################################################
+### compile vignette
+################################################################################
+# cd DRIMSeq/vignettes
+
+# R CMD Sweave --engine=knitr::knitr --pdf DRIMSeq.Rnw
+
+
+
+
+

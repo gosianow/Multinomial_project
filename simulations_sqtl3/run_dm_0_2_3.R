@@ -1,11 +1,11 @@
-# BioC devel
+# Bioc 3.1 - R31
 
 # Run DM_0.2.3 analysis 
 
 # Created 18 Sep 2015
 
 
-setwd("/home/gosia/multinomial_project/simulations_sqtl3_hsapiens_noDE_noNull")
+setwd("/home/gosia/multinomial_project/simulations_sqtl/simulations_sqtl3_hsapiens_noDE_noNull")
 
 
 ##############################################
@@ -109,14 +109,47 @@ DM:::dmDS_plotDataInfo(info, ds_info, out_dir = results_dir)
 
 
 
+##############################################
+### Plotting some genes
+##############################################
+
+load(paste0(results_dir, "dmDSLRT.Rdata"))
+
+results <- DM::results(data)
+
+truth <- unique(truth2[, c("gene_id", "gene_ds_status")])
+
+
+### Plot fits for interesting genes
+oo <- order(results$pvalue, decreasing = FALSE)
+results <- results[oo, ]
+
+
+resm <- merge(results, truth, by = "gene_id", sort = FALSE)
+
+fp <- resm[resm$adj_pvalue < 0.05 & resm$gene_ds_status == 0, ]
 
 
 
+gene_id <- fp[1:5, "gene_id"]
+
+
+plotFit(data, gene_id = gene_id, out_dir = paste0(results_dir, "fp_"), plot_type = "boxplot1")
 
 
 
+oo <- order(results$pvalue, decreasing = TRUE)
+results <- results[oo, ]
 
 
+fn <- resm[resm$adj_pvalue > 0.05 & resm$gene_ds_status == 1, ]
+
+
+
+gene_id <- fn[1:5, "gene_id"]
+
+
+plotFit(data, gene_id = gene_id, out_dir = paste0(results_dir, "fn_"), plot_type = "boxplot1")
 
 
 

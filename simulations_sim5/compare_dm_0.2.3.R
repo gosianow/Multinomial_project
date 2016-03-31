@@ -41,63 +41,63 @@ results <- list()
 counter <- 1
 
 for(i in 1:2){
-	# i = 3
+  # i = 3
   
-	for(j in 1:length(filter_methodList)){
-		# j = 1
+  for(j in 1:length(filter_methodList)){
+    # j = 1
     
-		count_method <- count_methodList[i]
-		filter_method <- filter_methodList[j]
+    count_method <- count_methodList[i]
+    filter_method <- filter_methodList[j]
 
-		####################### results produced by Charlotte
+    ####################### results produced by Charlotte
 
 
-		rt <- read.table(paste0("4_results/", dexseq_resultsList[i], ".txt"), header = T, as.is = TRUE)
-		head(rt)
+    rt <- read.table(paste0("4_results/", dexseq_resultsList[i], ".txt"), header = T, as.is = TRUE)
+    head(rt)
 
-		colnames(rt) <- c("gene_id", "adj_pvalue")
+    colnames(rt) <- c("gene_id", "adj_pvalue")
 
-		results[[counter]] <- rt
-		split_levels[[counter]] <- data.frame(method = "dexseq", counting = count_method, filtering = filter_method)
+    results[[counter]] <- rt
+    split_levels[[counter]] <- data.frame(method = "dexseq", counting = count_method, filtering = filter_method)
     
-		counter <- counter + 1
+    counter <- counter + 1
 
 
-		####################### DM results  
+    ####################### DM results  
 
-		res_path <- paste0(results_dm, count_method, "/", filter_method, "/")
+    res_path <- paste0(results_dm, count_method, "/", filter_method, "/")
 
-		files <- list.files(path = res_path, pattern = "_results.txt", full.names = TRUE)
+    files <- list.files(path = res_path, pattern = "_results.txt", full.names = TRUE)
     
-		print(files)
+    print(files)
     
-		res  <- gsub(pattern = "_results.txt", replacement = "", x = basename(files))
-		# res  <- gsub(pattern = paste0(count_method, "_"), replacement = "", res)
-		# res  <- gsub(pattern = "constrOptim2G_", replacement = "", res)
-		# res 
+    res  <- gsub(pattern = "_results.txt", replacement = "", x = basename(files))
+    # res  <- gsub(pattern = paste0(count_method, "_"), replacement = "", res)
+    # res  <- gsub(pattern = "constrOptim2G_", replacement = "", res)
+    # res 
 
-		for(k in 1:length(files)){
-			# k = 1
+    for(k in 1:length(files)){
+      # k = 1
       
-			# rt <- read.table(paste0(res_path, files[k]), header = TRUE, as.is = TRUE)
-			rt <- read.table(files[k], header = TRUE, as.is = TRUE)
+      # rt <- read.table(paste0(res_path, files[k]), header = TRUE, as.is = TRUE)
+      rt <- read.table(files[k], header = TRUE, as.is = TRUE)
       
-			head(rt)
+      head(rt)
       
-			rt <- rt[,c("gene_id", "pvalue" ,"adj_pvalue")]
+      rt <- rt[,c("gene_id", "pvalue" ,"adj_pvalue")]
       
-			colnames(rt) <- c("gene_id", "pvalue", "adj_pvalue")
-			head(rt)
+      colnames(rt) <- c("gene_id", "pvalue", "adj_pvalue")
+      head(rt)
       
-			results[[counter]] <- rt  
-			split_levels[[counter]] <- data.frame(method = res[k], counting = count_method, filtering = filter_method)
+      results[[counter]] <- rt  
+      split_levels[[counter]] <- data.frame(method = res[k], counting = count_method, filtering = filter_method)
       
-			counter <- counter + 1
+      counter <- counter + 1
       
       
-		}
+    }
     
-	}
+  }
   
 }
 
@@ -156,7 +156,7 @@ dev.off()
 
 
 #######################################################
-# generate venn diagrams 
+# 
 #######################################################
 
 

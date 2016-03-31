@@ -42,11 +42,11 @@ cat(i, fill = TRUE)
 #   system(cmd)
   
   d <- read.table(snpsFiles[i], header = TRUE, as.is = TRUE)
-	
+  
   o <- order(d[,2])
-	
-	print(table(o[-1] - o[-length(o)]))
-	
+  
+  print(table(o[-1] - o[-length(o)]))
+  
   do <- d[o, ]
   
   # write.table(do, file=paste0(snpsFiles[i] ,".sort.tsv"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
